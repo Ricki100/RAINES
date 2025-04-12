@@ -119,11 +119,24 @@ document.getElementById('addTextBox').addEventListener('click', () => {
     
     const textBox = document.createElement('div');
     textBox.className = 'text-box';
-    textBox.style.fontSize = `${fontSize}px`;
-    textBox.style.color = color;
-    textBox.style.fontFamily = fontFamily;
-    textBox.style.width = '150px';
-    textBox.style.height = '50px';
+    
+    // Check if this is an image field
+    const isImageField = column.startsWith('@image');
+    textBox.dataset.isImage = isImageField.toString();
+    
+    if (isImageField) {
+        textBox.style.width = '200px';  // Default size for image boxes
+        textBox.style.height = '200px';
+        textBox.style.backgroundColor = 'rgba(200, 200, 200, 0.2)';  // Light background for image boxes
+        textBox.style.border = '2px dashed #666';
+    } else {
+        textBox.style.fontSize = `${fontSize}px`;
+        textBox.style.color = color;
+        textBox.style.fontFamily = fontFamily;
+        textBox.style.width = '150px';
+        textBox.style.height = '50px';
+    }
+    
     textBox.style.position = 'absolute';
     textBox.style.padding = '5px';
     textBox.style.boxSizing = 'border-box';
@@ -133,15 +146,20 @@ document.getElementById('addTextBox').addEventListener('click', () => {
     
     // Store styling data
     textBox.dataset.column = column;
-    textBox.dataset.fontSize = fontSize;
-    textBox.dataset.color = color;
-    textBox.dataset.fontFamily = fontFamily;
-    textBox.dataset.bold = 'false';
-    textBox.dataset.italic = 'false';
-    textBox.dataset.underline = 'false';
-    textBox.dataset.align = 'left';
-    textBox.dataset.width = '150';
-    textBox.dataset.height = '50';
+    if (!isImageField) {
+        textBox.dataset.fontSize = fontSize;
+        textBox.dataset.color = color;
+        textBox.dataset.fontFamily = fontFamily;
+        textBox.dataset.bold = 'false';
+        textBox.dataset.italic = 'false';
+        textBox.dataset.underline = 'false';
+        textBox.dataset.align = 'left';
+        textBox.dataset.width = '150';
+        textBox.dataset.height = '50';
+    } else {
+        textBox.dataset.width = '200';
+        textBox.dataset.height = '200';
+    }
     
     // Create header
     const headerDiv = document.createElement('div');
@@ -161,9 +179,13 @@ document.getElementById('addTextBox').addEventListener('click', () => {
     // Create content
     const contentDiv = document.createElement('div');
     contentDiv.className = 'text-box-content';
-    contentDiv.style.wordWrap = 'break-word';
-    contentDiv.style.overflowWrap = 'break-word';
-    contentDiv.style.whiteSpace = 'pre-wrap';
+    if (isImageField) {
+        contentDiv.innerHTML = '<div class="image-placeholder">Image Placeholder</div>';
+    } else {
+        contentDiv.style.wordWrap = 'break-word';
+        contentDiv.style.overflowWrap = 'break-word';
+        contentDiv.style.whiteSpace = 'pre-wrap';
+    }
     contentDiv.style.width = '100%';
     contentWrapper.appendChild(contentDiv);
     
@@ -175,8 +197,8 @@ document.getElementById('addTextBox').addEventListener('click', () => {
     // Position in the center of the canvas container
     const container = document.getElementById('canvasContainer');
     const rect = container.getBoundingClientRect();
-    textBox.style.left = `${rect.width / 2 - 75}px`;
-    textBox.style.top = `${rect.height / 2 - 25}px`;
+    textBox.style.left = `${rect.width / 2 - (isImageField ? 100 : 75)}px`;
+    textBox.style.top = `${rect.height / 2 - (isImageField ? 100 : 25)}px`;
     
     textBox.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -403,38 +425,69 @@ document.getElementById('previewBtn').addEventListener('click', async () => {
         return;
     }
     
+    const previewBtn = document.getElementById('previewBtn');
+    const originalText = previewBtn.textContent;
+    
     try {
         // Show loading state
-        const previewBtn = document.getElementById('previewBtn');
-        const originalText = previewBtn.textContent;
         previewBtn.textContent = 'Generating Previews...';
         previewBtn.disabled = true;
+
+        // Get the carousel element
+        const carousel = document.getElementById('previewCarousel');
         
         const canvas = document.getElementById('templateCanvas');
         const scaleX = originalImageSize.width / canvas.width;
         const scaleY = originalImageSize.height / canvas.height;
         
+        // Get fresh text box configurations
         const textBoxConfigs = Array.from(document.querySelectorAll('.text-box')).map(box => {
-            const scaledX = parseFloat((box.offsetLeft * scaleX).toFixed(2));
-            const scaledY = parseFloat((box.offsetTop * scaleY).toFixed(2));
-            const scaledFontSize = parseInt(box.dataset.fontSize) * Math.max(scaleX, scaleY);
+            // Get current position and dimensions
+            const rect = box.getBoundingClientRect();
+            const container = document.getElementById('canvasContainer');
+            const containerRect = container.getBoundingClientRect();
+            
+            // Calculate position relative to container
+            const relativeLeft = box.offsetLeft;
+            const relativeTop = box.offsetTop;
+            
+            // Scale the positions and dimensions
+            const scaledX = parseFloat((relativeLeft * scaleX).toFixed(2));
+            const scaledY = parseFloat((relativeTop * scaleY).toFixed(2));
             const scaledWidth = parseFloat((parseInt(box.dataset.width || box.offsetWidth) * scaleX).toFixed(2));
             const scaledHeight = parseFloat((parseInt(box.dataset.height || box.offsetHeight) * scaleY).toFixed(2));
             
-            return {
-                column: box.dataset.column,
-                x: scaledX,
-                y: scaledY,
-                size: Math.round(scaledFontSize),
-                color: box.dataset.color || '#000000',
-                width: scaledWidth,
-                height: scaledHeight,
-                fontFamily: box.dataset.fontFamily || 'Arial',
-                bold: box.dataset.bold === 'true',
-                italic: box.dataset.italic === 'true',
-                underline: box.dataset.underline === 'true',
-                align: box.dataset.align || 'left'
-            };
+            // Check if this is an image field
+            const isImageField = box.dataset.isImage === 'true';
+            
+            // Return configuration based on field type
+            if (isImageField) {
+                return {
+                    column: box.dataset.column,
+                    x: scaledX,
+                    y: scaledY,
+                    width: scaledWidth,
+                    height: scaledHeight,
+                    isImage: true
+                };
+            } else {
+                const scaledFontSize = parseInt(box.dataset.fontSize) * Math.max(scaleX, scaleY);
+                return {
+                    column: box.dataset.column,
+                    x: scaledX,
+                    y: scaledY,
+                    size: Math.round(scaledFontSize),
+                    color: box.dataset.color || '#000000',
+                    width: scaledWidth,
+                    height: scaledHeight,
+                    fontFamily: box.dataset.fontFamily || 'Arial',
+                    bold: box.dataset.bold === 'true',
+                    italic: box.dataset.italic === 'true',
+                    underline: box.dataset.underline === 'true',
+                    align: box.dataset.align || 'left',
+                    isImage: false
+                };
+            }
         });
         
         // Ensure CSV data is properly formatted
@@ -464,10 +517,14 @@ document.getElementById('previewBtn').addEventListener('click', async () => {
             window.previewUrls = data.preview_urls;
             
             // Update carousel with preview images
-            const carousel = document.getElementById('previewCarousel');
             const carouselInner = carousel.querySelector('.carousel-inner');
             const indicators = carousel.querySelector('.carousel-indicators');
             
+            // Clear existing carousel content
+            carouselInner.innerHTML = '';
+            indicators.innerHTML = '';
+            
+            // Add new preview images
             carouselInner.innerHTML = data.preview_urls.map((url, index) => `
                 <div class="carousel-item ${index === 0 ? 'active' : ''}">
                     <img src="${url}" class="d-block w-100" alt="Preview ${index + 1}">
@@ -486,22 +543,41 @@ document.getElementById('previewBtn').addEventListener('click', async () => {
                 </button>
             `).join('');
             
-            carousel.classList.remove('d-none');
+            // Initialize or refresh the carousel
+            if (carousel.classList.contains('d-none')) {
+                carousel.classList.remove('d-none');
+            } else {
+                // Force a refresh of the carousel
+                const carouselInstance = bootstrap.Carousel.getInstance(carousel);
+                if (carouselInstance) {
+                    carouselInstance.dispose();
+                }
+                new bootstrap.Carousel(carousel);
+            }
             
-            // Enable download button if we have previews
+            // Enable download button
             const downloadBtn = document.getElementById('downloadPreviewBtn');
             downloadBtn.disabled = false;
+            
+            // Update status
+            const statusDiv = document.getElementById('generationStatus');
+            statusDiv.textContent = 'Previews generated successfully!';
+            statusDiv.className = 'mt-3 text-success';
         } else {
             throw new Error(data.error);
         }
     } catch (error) {
         console.error('Preview error:', error);
         alert('Error generating previews: ' + error.message);
+        
+        // Update status for error
+        const statusDiv = document.getElementById('generationStatus');
+        statusDiv.textContent = 'Error generating previews: ' + error.message;
+        statusDiv.className = 'mt-3 text-danger';
     } finally {
         // Reset preview button state
-        const previewBtn = document.getElementById('previewBtn');
         previewBtn.textContent = originalText;
-        previewBtn.disabled = false;
+        previewBtn.disabled = false;  // Ensure button is re-enabled
     }
 });
 
@@ -559,7 +635,8 @@ document.getElementById('downloadPreviewBtn').addEventListener('click', async ()
 function updateTextBoxPreview(textBox) {
     const column = textBox.dataset.column;
     if (csvData && csvData.length > 0 && column in csvData[0]) {
-        const previewText = csvData[0][column];
+        const previewValue = csvData[0][column];
+        const isImageField = textBox.dataset.isImage === 'true';
         
         // Check if text box content elements exist
         let headerDiv = textBox.querySelector('.text-box-header');
@@ -597,13 +674,23 @@ function updateTextBoxPreview(textBox) {
         
         // Update content
         headerDiv.textContent = column;
-        contentDiv.textContent = previewText;
         
-        // Apply text wrapping styles to content div
-        contentDiv.style.wordWrap = 'break-word';
-        contentDiv.style.overflowWrap = 'break-word';
-        contentDiv.style.whiteSpace = 'pre-wrap';
-        contentDiv.style.width = '100%';
+        if (isImageField && previewValue) {
+            // For image fields, try to load and display the image
+            contentDiv.innerHTML = `
+                <div class="image-preview" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+                    <img src="${previewValue}" style="max-width: 100%; max-height: 100%; object-fit: contain;" 
+                         onerror="this.onerror=null; this.src=''; this.parentElement.innerHTML='Invalid Image URL';">
+                </div>`;
+        } else if (isImageField) {
+            contentDiv.innerHTML = '<div class="image-placeholder">Image Placeholder</div>';
+        } else {
+            contentDiv.textContent = previewValue;
+            contentDiv.style.wordWrap = 'break-word';
+            contentDiv.style.overflowWrap = 'break-word';
+            contentDiv.style.whiteSpace = 'pre-wrap';
+            contentDiv.style.width = '100%';
+        }
         
         // Apply wrapper styles
         contentWrapper.style.flex = '1';

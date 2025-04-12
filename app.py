@@ -10,6 +10,7 @@ from datetime import datetime
 import tempfile
 import shutil
 from io import BytesIO
+import requests
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = os.path.join('static', 'uploads')
@@ -161,6 +162,53 @@ def draw_text_box(draw, box, text, img_width, img_height):
     except Exception as e:
         print(f"Error drawing text box: {str(e)}")
 
+def draw_image_box(draw, box, image_url, img_width, img_height):
+    """Helper function to draw image from URL into a box"""
+    try:
+        # Get box dimensions and position
+        x = float(box['x'])
+        y = float(box['y'])
+        box_width = float(box.get('width', img_width - x))
+        box_height = float(box.get('height', img_height - y))
+        
+        try:
+            # Download and open the image from URL
+            response = requests.get(image_url, timeout=5)
+            if response.status_code == 200:
+                overlay_img = Image.open(BytesIO(response.content))
+                
+                # Calculate dimensions while maintaining aspect ratio
+                overlay_width, overlay_height = overlay_img.size
+                scale = min(box_width/overlay_width, box_height/overlay_height)
+                new_width = int(overlay_width * scale)
+                new_height = int(overlay_height * scale)
+                
+                # Resize the overlay image
+                overlay_img = overlay_img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                
+                # Calculate position to center the image in the box
+                paste_x = int(x + (box_width - new_width) / 2)
+                paste_y = int(y + (box_height - new_height) / 2)
+                
+                # If the overlay has transparency, use it as mask
+                if overlay_img.mode in ('RGBA', 'LA'):
+                    # Extract the alpha channel as mask
+                    mask = overlay_img.split()[-1] if overlay_img.mode == 'RGBA' else overlay_img.split()[1]
+                    # Convert to RGB for pasting
+                    overlay_img = overlay_img.convert('RGB')
+                    return (overlay_img, (paste_x, paste_y), mask)
+                else:
+                    return (overlay_img, (paste_x, paste_y))
+                    
+        except Exception as e:
+            print(f"Error processing image URL: {str(e)}")
+            # Draw an error placeholder
+            draw.rectangle([x, y, x + box_width, y + box_height], outline='red', width=2)
+            draw.text((x + 10, y + box_height/2), f"Image Error: {str(e)[:50]}...", fill='red')
+            
+    except Exception as e:
+        print(f"Error drawing image box: {str(e)}")
+
 @app.route('/preview_images', methods=['POST'])
 def preview_images():
     try:
@@ -176,33 +224,68 @@ def preview_images():
         # Clear any existing preview files
         for file in os.listdir(preview_dir):
             if file.startswith('preview_') and file.endswith('.png'):
-                os.remove(os.path.join(preview_dir, file))
+                try:
+                    os.remove(os.path.join(preview_dir, file))
+                except Exception as e:
+                    print(f"Warning: Could not remove old preview file: {e}")
         
         preview_urls = []
         
         for i, row in enumerate(csv_data):
-            img = Image.open(template_path)
-            draw = ImageDraw.Draw(img)
-            img_width, img_height = img.size
-            
-            for box in text_boxes:
-                text = str(row[box['column']])
-                draw_text_box(draw, box, text, img_width, img_height)
-            
-            preview_filename = f'preview_{i}.png'
-            preview_path = os.path.join(preview_dir, preview_filename)
-            
-            # Save the image with explicit format
-            img.save(preview_path, format='PNG')
-            
-            # Verify the file was created
-            if os.path.exists(preview_path):
-                preview_urls.append(url_for('static', filename=f'uploads/previews/{preview_filename}'))
-            else:
-                print(f"Warning: Failed to save preview file: {preview_path}")
+            try:
+                # Open and process the template image
+                with Image.open(template_path) as img:
+                    # Convert to RGB if necessary
+                    if img.mode != 'RGB':
+                        img = img.convert('RGB')
+                    
+                    draw = ImageDraw.Draw(img)
+                    img_width, img_height = img.size
+                    
+                    # Draw text boxes and images
+                    for box in text_boxes:
+                        content = str(row[box['column']])
+                        if box.get('isImage', False):
+                            # Handle image box
+                            result = draw_image_box(draw, box, content, img_width, img_height)
+                            if result:
+                                if len(result) == 3:
+                                    overlay, pos, mask = result
+                                    img.paste(overlay, pos, mask)
+                                else:
+                                    overlay, pos = result
+                                    img.paste(overlay, pos)
+                        else:
+                            # Handle text box
+                            draw_text_box(draw, box, content, img_width, img_height)
+                    
+                    # Save the preview image
+                    preview_filename = f'preview_{i}.png'
+                    preview_path = os.path.join(preview_dir, preview_filename)
+                    
+                    # Ensure the directory exists
+                    os.makedirs(os.path.dirname(preview_path), exist_ok=True)
+                    
+                    # Save with explicit format and quality
+                    img.save(
+                        preview_path,
+                        format='PNG',
+                        optimize=True,
+                        quality=95
+                    )
+                    
+                    # Verify the file was created and is readable
+                    if os.path.exists(preview_path) and os.access(preview_path, os.R_OK):
+                        preview_urls.append(url_for('static', filename=f'uploads/previews/{preview_filename}'))
+                    else:
+                        raise Exception(f"Failed to save or access preview file: {preview_filename}")
+                        
+            except Exception as e:
+                print(f"Error processing preview {i}: {str(e)}")
+                continue
         
         if not preview_urls:
-            return jsonify({'error': 'No preview images were generated'}), 500
+            return jsonify({'error': 'No preview images were generated successfully'}), 500
         
         return jsonify({
             'preview_urls': preview_urls,
@@ -222,7 +305,7 @@ def download_previews():
         # Create a BytesIO object to store the zip file
         memory_file = BytesIO()
         
-        # Create the zip file
+        # Create the zip file with proper compression
         with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
             preview_dir = os.path.join(app.config['UPLOAD_FOLDER'], 'previews')
             
@@ -233,14 +316,16 @@ def download_previews():
                 
                 # Verify file exists and is readable
                 if os.path.exists(preview_path) and os.access(preview_path, os.R_OK):
-                    # Read the image file and add it to the zip
+                    # Read the image file in binary mode
                     with open(preview_path, 'rb') as img_file:
-                        zf.writestr(preview_filename, img_file.read())
+                        img_data = img_file.read()
+                        # Write the image data directly to the zip
+                        zf.writestr(preview_filename, img_data)
         
         # Reset the pointer to the beginning of the BytesIO object
         memory_file.seek(0)
         
-        # Create the response
+        # Create the response with the zip file
         response = send_file(
             memory_file,
             mimetype='application/zip',
@@ -248,10 +333,11 @@ def download_previews():
             download_name='preview_images.zip'
         )
         
-        # Add headers to prevent caching
+        # Add headers to prevent caching and ensure proper download
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         response.headers['Pragma'] = 'no-cache'
         response.headers['Expires'] = '0'
+        response.headers['Content-Disposition'] = 'attachment; filename=preview_images.zip'
         
         return response
             

@@ -18,23 +18,19 @@
 
 .text-box {
     position: absolute;
-    border: 2px dashed #007bff;
     background-color: rgba(255, 255, 255, 0.8);
+    border: 1px solid #ccc;
     cursor: move;
-    padding: 10px;
-    min-width: 100px;
-    min-height: 40px;
-    display: flex;
-    flex-direction: column;
-    z-index: 100;
+    min-width: 50px;
+    min-height: 30px;
 }
 
 .text-box-header {
+    background-color: rgba(0, 0, 0, 0.1);
+    padding: 2px 5px;
     font-size: 12px;
-    color: #666;
-    margin-bottom: 5px;
-    border-bottom: 1px solid #ddd;
-    padding-bottom: 3px;
+    cursor: move;
+    user-select: none;
 }
 
 .text-box:hover {
@@ -42,17 +38,17 @@
 }
 
 .text-box.selected {
-    border: 2px solid #28a745;
-    background-color: rgba(255, 255, 255, 0.95);
+    border: 2px solid #007bff;
+    z-index: 1000;
 }
 
 .resize-handle {
-    position: absolute;
-    bottom: 0;
-    right: 0;
     width: 10px;
     height: 10px;
     background-color: #007bff;
+    position: absolute;
+    right: 0;
+    bottom: 0;
     cursor: se-resize;
 }
 
@@ -149,12 +145,11 @@
 }
 
 #previewCarousel {
-    max-width: 800px;
-    margin: 0 auto 20px;
     background-color: #f8f9fa;
     border: 1px solid #ddd;
     border-radius: 4px;
     overflow: hidden;
+    margin-bottom: 1rem;
 }
 
 #previewCarousel .carousel-inner {
@@ -206,8 +201,90 @@
     padding: 5px;
 }
 
-#previewCarousel .text-center {
-    padding: 15px;
-    background-color: #fff;
+/* Download button styles */
+#previewCarousel .carousel-caption.position-static {
+    position: relative;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    transform: none;
+    background-color: #f8f9fa;
     border-top: 1px solid #ddd;
+    margin-top: 0;
+    padding: 1rem;
+    width: 100%;
+}
+
+#downloadPreviewBtn {
+    padding: 0.75rem 1.5rem;
+    font-size: 1.1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+#downloadPreviewBtn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+#downloadPreviewBtn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.preview-section {
+    position: relative;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Image placeholder styles */
+.image-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    color: #666;
+    font-size: 14px;
+    text-align: center;
+    background-color: rgba(200, 200, 200, 0.2);
+}
+
+/* Image preview styles */
+.image-preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.9);
+}
+
+.image-preview img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+/* Style for image text boxes */
+.text-box[data-is-image="true"] {
+    background-color: rgba(255, 255, 255, 0.95);
+    border: 2px dashed #666;
+}
+
+.text-box[data-is-image="true"].selected {
+    border: 2px solid #007bff;
+    border-style: dashed;
+}
+
+.text-box[data-is-image="true"] .text-box-header {
+    background-color: rgba(0, 123, 255, 0.1);
+    color: #007bff;
+}
+
+/* Hide text styling controls for image boxes */
+.text-box[data-is-image="true"] .text-styling {
+    display: none;
 } 
