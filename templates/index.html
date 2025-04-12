@@ -140,7 +140,10 @@
                 <button id="previewBtn" class="btn btn-primary mb-3">Preview Images</button>
                 
                 <!-- Preview Carousel -->
-                <div id="previewCarousel" class="carousel slide mb-4 d-none" data-bs-ride="carousel">
+                <div id="previewCarousel" class="carousel slide mb-4 d-none" data-bs-ride="false">
+                    <div class="carousel-indicators">
+                        <!-- Indicators will be inserted here -->
+                    </div>
                     <div class="carousel-inner">
                         <!-- Preview images will be inserted here -->
                     </div>
@@ -152,12 +155,11 @@
                         <span class="carousel-control-next-icon" aria-hidden="true"></span>
                         <span class="visually-hidden">Next</span>
                     </button>
-                    <div class="carousel-indicators">
-                        <!-- Indicators will be inserted here -->
+                    <div class="text-center mt-3">
+                        <button id="downloadPreviewBtn" class="btn btn-primary">Download Preview Images</button>
                     </div>
                 </div>
                 
-                <button id="generateBtn" class="btn btn-success">Generate and Download Images</button>
                 <div id="generationStatus" class="mt-3"></div>
             </div>
         </div>

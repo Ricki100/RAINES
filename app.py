@@ -169,8 +169,14 @@ def preview_images():
         csv_data = data['csv_data']
         text_boxes = data['text_boxes']
         
+        # Create previews directory if it doesn't exist
         preview_dir = os.path.join(app.config['UPLOAD_FOLDER'], 'previews')
         os.makedirs(preview_dir, exist_ok=True)
+        
+        # Clear any existing preview files
+        for file in os.listdir(preview_dir):
+            if file.startswith('preview_') and file.endswith('.png'):
+                os.remove(os.path.join(preview_dir, file))
         
         preview_urls = []
         
@@ -185,8 +191,18 @@ def preview_images():
             
             preview_filename = f'preview_{i}.png'
             preview_path = os.path.join(preview_dir, preview_filename)
-            img.save(preview_path)
-            preview_urls.append(url_for('static', filename=f'uploads/previews/{preview_filename}'))
+            
+            # Save the image with explicit format
+            img.save(preview_path, format='PNG')
+            
+            # Verify the file was created
+            if os.path.exists(preview_path):
+                preview_urls.append(url_for('static', filename=f'uploads/previews/{preview_filename}'))
+            else:
+                print(f"Warning: Failed to save preview file: {preview_path}")
+        
+        if not preview_urls:
+            return jsonify({'error': 'No preview images were generated'}), 500
         
         return jsonify({
             'preview_urls': preview_urls,
@@ -194,15 +210,67 @@ def preview_images():
         })
         
     except Exception as e:
+        print(f"Error in preview_images: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/download_previews', methods=['POST'])
+def download_previews():
+    try:
+        data = request.get_json()
+        preview_urls = data['preview_urls']
+        
+        # Create a BytesIO object to store the zip file
+        memory_file = BytesIO()
+        
+        # Create the zip file
+        with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+            preview_dir = os.path.join(app.config['UPLOAD_FOLDER'], 'previews')
+            
+            # Add each preview image to the zip file
+            for i, url in enumerate(preview_urls):
+                preview_filename = f'preview_{i}.png'
+                preview_path = os.path.join(preview_dir, preview_filename)
+                
+                # Verify file exists and is readable
+                if os.path.exists(preview_path) and os.access(preview_path, os.R_OK):
+                    # Read the image file and add it to the zip
+                    with open(preview_path, 'rb') as img_file:
+                        zf.writestr(preview_filename, img_file.read())
+        
+        # Reset the pointer to the beginning of the BytesIO object
+        memory_file.seek(0)
+        
+        # Create the response
+        response = send_file(
+            memory_file,
+            mimetype='application/zip',
+            as_attachment=True,
+            download_name='preview_images.zip'
+        )
+        
+        # Add headers to prevent caching
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        
+        return response
+            
+    except Exception as e:
+        print(f"Error in download_previews: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/generate_images', methods=['POST'])
 def generate_images():
     try:
         data = request.get_json()
-        template_path = data['template']
+        # Construct the full path to the template in the uploads directory
+        template_path = os.path.join(app.config['UPLOAD_FOLDER'], data['template'])
         csv_data = data['csv_data']
         text_boxes = data['text_boxes']
+        
+        # Verify template file exists
+        if not os.path.exists(template_path):
+            return jsonify({'error': f'Template file not found: {template_path}'}), 404
         
         # Create a temporary directory for the generated images
         temp_dir = tempfile.mkdtemp()

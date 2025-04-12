@@ -396,80 +396,6 @@ document.getElementById('fontColor').addEventListener('input', (e) => {
     }
 });
 
-// Generate Images
-document.getElementById('generateBtn').addEventListener('click', async () => {
-    if (!currentTemplate || !csvData || textBoxes.length === 0) {
-        alert('Please complete all steps before generating images');
-        return;
-    }
-    
-    const canvas = document.getElementById('templateCanvas');
-    const scaleX = originalImageSize.width / canvas.width;
-    const scaleY = originalImageSize.height / canvas.height;
-    
-    const textBoxConfigs = Array.from(document.querySelectorAll('.text-box')).map(box => {
-        const scaledX = box.offsetLeft * scaleX;
-        const scaledY = box.offsetTop * scaleY;
-        const scaledFontSize = parseInt(box.dataset.fontSize) * Math.max(scaleX, scaleY);
-        const scaledWidth = parseInt(box.dataset.width || box.offsetWidth) * scaleX;
-        const scaledHeight = parseInt(box.dataset.height || box.offsetHeight) * scaleY;
-        
-        return {
-            column: box.dataset.column,
-            x: scaledX,
-            y: scaledY,
-            size: scaledFontSize,
-            color: box.dataset.color,
-            width: scaledWidth,
-            height: scaledHeight,
-            fontFamily: box.dataset.fontFamily,
-            bold: box.dataset.bold === 'true',
-            italic: box.dataset.italic === 'true',
-            underline: box.dataset.underline === 'true',
-            align: box.dataset.align
-        };
-    });
-    
-    try {
-        const response = await fetch('/generate_images', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                template: currentTemplate,
-                csv_data: csvData,
-                text_boxes: textBoxConfigs
-            })
-        });
-        
-        const data = await response.json();
-        if (response.ok) {
-            // Create download button
-            const downloadBtn = document.createElement('a');
-            downloadBtn.href = data.download_url;
-            downloadBtn.className = 'btn btn-primary mt-3';
-            downloadBtn.download = data.zip_filename;
-            downloadBtn.innerHTML = '<i class="fas fa-download"></i> Download Generated Images';
-            
-            document.getElementById('generationStatus').innerHTML = `
-                <div class="alert alert-success">
-                    ${data.message}
-                    <div class="mt-2">
-                        Click the button below to download your images:
-                    </div>
-                </div>
-            `;
-            document.getElementById('generationStatus').appendChild(downloadBtn);
-        } else {
-            throw new Error(data.error);
-        }
-    } catch (error) {
-        document.getElementById('generationStatus').innerHTML = 
-            `<div class="alert alert-danger">Error: ${error.message}</div>`;
-    }
-});
-
 // Preview Images
 document.getElementById('previewBtn').addEventListener('click', async () => {
     if (!currentTemplate || !csvData || textBoxes.length === 0) {
@@ -477,34 +403,49 @@ document.getElementById('previewBtn').addEventListener('click', async () => {
         return;
     }
     
-    const canvas = document.getElementById('templateCanvas');
-    const scaleX = originalImageSize.width / canvas.width;
-    const scaleY = originalImageSize.height / canvas.height;
-    
-    const textBoxConfigs = Array.from(document.querySelectorAll('.text-box')).map(box => {
-        const scaledX = box.offsetLeft * scaleX;
-        const scaledY = box.offsetTop * scaleY;
-        const scaledFontSize = parseInt(box.dataset.fontSize) * Math.max(scaleX, scaleY);
-        const scaledWidth = parseInt(box.dataset.width || box.offsetWidth) * scaleX;
-        const scaledHeight = parseInt(box.dataset.height || box.offsetHeight) * scaleY;
-        
-        return {
-            column: box.dataset.column,
-            x: scaledX,
-            y: scaledY,
-            size: scaledFontSize,
-            color: box.dataset.color,
-            width: scaledWidth,
-            height: scaledHeight,
-            fontFamily: box.dataset.fontFamily,
-            bold: box.dataset.bold === 'true',
-            italic: box.dataset.italic === 'true',
-            underline: box.dataset.underline === 'true',
-            align: box.dataset.align
-        };
-    });
-    
     try {
+        // Show loading state
+        const previewBtn = document.getElementById('previewBtn');
+        const originalText = previewBtn.textContent;
+        previewBtn.textContent = 'Generating Previews...';
+        previewBtn.disabled = true;
+        
+        const canvas = document.getElementById('templateCanvas');
+        const scaleX = originalImageSize.width / canvas.width;
+        const scaleY = originalImageSize.height / canvas.height;
+        
+        const textBoxConfigs = Array.from(document.querySelectorAll('.text-box')).map(box => {
+            const scaledX = parseFloat((box.offsetLeft * scaleX).toFixed(2));
+            const scaledY = parseFloat((box.offsetTop * scaleY).toFixed(2));
+            const scaledFontSize = parseInt(box.dataset.fontSize) * Math.max(scaleX, scaleY);
+            const scaledWidth = parseFloat((parseInt(box.dataset.width || box.offsetWidth) * scaleX).toFixed(2));
+            const scaledHeight = parseFloat((parseInt(box.dataset.height || box.offsetHeight) * scaleY).toFixed(2));
+            
+            return {
+                column: box.dataset.column,
+                x: scaledX,
+                y: scaledY,
+                size: Math.round(scaledFontSize),
+                color: box.dataset.color || '#000000',
+                width: scaledWidth,
+                height: scaledHeight,
+                fontFamily: box.dataset.fontFamily || 'Arial',
+                bold: box.dataset.bold === 'true',
+                italic: box.dataset.italic === 'true',
+                underline: box.dataset.underline === 'true',
+                align: box.dataset.align || 'left'
+            };
+        });
+        
+        // Ensure CSV data is properly formatted
+        const formattedCsvData = csvData.map(row => {
+            const formattedRow = {};
+            for (const key in row) {
+                formattedRow[key] = String(row[key] || '').trim();
+            }
+            return formattedRow;
+        });
+        
         const response = await fetch('/preview_images', {
             method: 'POST',
             headers: {
@@ -512,13 +453,16 @@ document.getElementById('previewBtn').addEventListener('click', async () => {
             },
             body: JSON.stringify({
                 template: currentTemplate,
-                csv_data: csvData.slice(0, 3), // Only preview first 3 records
+                csv_data: formattedCsvData,
                 text_boxes: textBoxConfigs
             })
         });
         
         const data = await response.json();
         if (response.ok) {
+            // Store preview URLs for download
+            window.previewUrls = data.preview_urls;
+            
             // Update carousel with preview images
             const carousel = document.getElementById('previewCarousel');
             const carouselInner = carousel.querySelector('.carousel-inner');
@@ -543,11 +487,72 @@ document.getElementById('previewBtn').addEventListener('click', async () => {
             `).join('');
             
             carousel.classList.remove('d-none');
+            
+            // Enable download button if we have previews
+            const downloadBtn = document.getElementById('downloadPreviewBtn');
+            downloadBtn.disabled = false;
         } else {
             throw new Error(data.error);
         }
     } catch (error) {
+        console.error('Preview error:', error);
         alert('Error generating previews: ' + error.message);
+    } finally {
+        // Reset preview button state
+        const previewBtn = document.getElementById('previewBtn');
+        previewBtn.textContent = originalText;
+        previewBtn.disabled = false;
+    }
+});
+
+// Download Preview Images
+document.getElementById('downloadPreviewBtn').addEventListener('click', async () => {
+    if (!window.previewUrls || window.previewUrls.length === 0) {
+        alert('No preview images available to download. Please generate previews first.');
+        return;
+    }
+
+    try {
+        // Show loading state
+        const downloadBtn = document.getElementById('downloadPreviewBtn');
+        const originalText = downloadBtn.textContent;
+        downloadBtn.textContent = 'Preparing Download...';
+        downloadBtn.disabled = true;
+
+        // Create a zip file containing all preview images
+        const response = await fetch('/download_previews', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                preview_urls: window.previewUrls
+            })
+        });
+
+        if (response.ok) {
+            // Create a blob from the response and trigger download
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'preview_images.zip';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+        } else {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to download preview images');
+        }
+    } catch (error) {
+        console.error('Download error:', error);
+        alert('Error downloading preview images: ' + error.message);
+    } finally {
+        // Reset download button state
+        const downloadBtn = document.getElementById('downloadPreviewBtn');
+        downloadBtn.textContent = originalText;
+        downloadBtn.disabled = false;
     }
 });
 

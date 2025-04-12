@@ -150,29 +150,43 @@
 
 #previewCarousel {
     max-width: 800px;
-    margin: 0 auto;
+    margin: 0 auto 20px;
     background-color: #f8f9fa;
     border: 1px solid #ddd;
     border-radius: 4px;
     overflow: hidden;
 }
 
-#previewCarousel .carousel-item {
-    height: 600px;
+#previewCarousel .carousel-inner {
     background-color: #fff;
+    height: 500px;
+}
+
+#previewCarousel .carousel-item {
+    height: 500px;
+    text-align: center;
+    padding: 20px;
 }
 
 #previewCarousel .carousel-item img {
+    max-width: 100%;
     max-height: 100%;
     width: auto;
+    height: auto;
     margin: 0 auto;
     object-fit: contain;
+    display: block;
 }
 
 #previewCarousel .carousel-caption {
     background-color: rgba(0, 0, 0, 0.5);
     border-radius: 4px;
     padding: 10px;
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: auto;
 }
 
 #previewCarousel .carousel-control-prev,
@@ -189,4 +203,11 @@
     margin-bottom: 0;
     background-color: rgba(0, 0, 0, 0.2);
     border-radius: 4px 4px 0 0;
+    padding: 5px;
+}
+
+#previewCarousel .text-center {
+    padding: 15px;
+    background-color: #fff;
+    border-top: 1px solid #ddd;
 } 
