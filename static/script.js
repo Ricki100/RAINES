@@ -119,10 +119,13 @@ document.getElementById('addTextBox').addEventListener('click', () => {
     
     const textBox = document.createElement('div');
     textBox.className = 'text-box';
-    textBox.innerHTML = `<div class="text-box-header">${column}</div>`;
     textBox.style.fontSize = `${fontSize}px`;
     textBox.style.color = color;
     textBox.style.fontFamily = fontFamily;
+    textBox.style.wordWrap = 'break-word';
+    textBox.style.overflowWrap = 'break-word';
+    textBox.style.whiteSpace = 'pre-wrap';
+    textBox.style.overflow = 'hidden';
     
     // Store styling data
     textBox.dataset.column = column;
@@ -515,7 +518,13 @@ function updateTextBoxPreview(textBox) {
         const previewText = csvData[0][column];
         textBox.innerHTML = `
             <div class="text-box-header">${column}</div>
-            <div class="text-box-content">${previewText}</div>
+            <div class="text-box-content" style="word-wrap: break-word; overflow-wrap: break-word; white-space: pre-wrap;">${previewText}</div>
         `;
+        
+        // Add text wrapping styles to the text box itself
+        textBox.style.wordWrap = 'break-word';
+        textBox.style.overflowWrap = 'break-word';
+        textBox.style.whiteSpace = 'pre-wrap';
+        textBox.style.overflow = 'hidden';
     }
 } 

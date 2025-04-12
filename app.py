@@ -61,6 +61,33 @@ def upload_csv():
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
+def wrap_text(draw, text, font, max_width):
+    """Helper function to wrap text based on given width"""
+    words = text.split()
+    lines = []
+    current_line = []
+    
+    for word in words:
+        current_line.append(word)
+        # Check the width of the current line
+        line_width = draw.textlength(' '.join(current_line), font=font)
+        if line_width > max_width:
+            # Remove the last word if we exceeded the width
+            if len(current_line) > 1:
+                current_line.pop()
+                lines.append(' '.join(current_line))
+                current_line = [word]
+            else:
+                # If a single word is too long, keep it on its own line
+                lines.append(word)
+                current_line = []
+    
+    # Add the last line if there's anything left
+    if current_line:
+        lines.append(' '.join(current_line))
+    
+    return lines
+
 @app.route('/generate_images', methods=['POST'])
 def generate_images():
     try:
@@ -83,7 +110,7 @@ def generate_images():
 
                 # Add text for each text box
                 for box in text_boxes:
-                    text = row[box['column']]
+                    text = str(row[box['column']])
                     font_size = int(box['size'])
                     font_family = box.get('fontFamily', 'arial.ttf')
                     
@@ -102,30 +129,45 @@ def generate_images():
                         # Fallback to default font if specified font not found
                         font = ImageFont.truetype('arial.ttf', font_size)
                     
-                    # Calculate text dimensions
-                    bbox = draw.textbbox((0, 0), text, font=font)
-                    text_width = bbox[2] - bbox[0]
-                    text_height = bbox[3] - bbox[1]
+                    # Get text box dimensions
+                    box_width = box.get('width', 0)
+                    box_height = box.get('height', 0)
                     
-                    # Calculate text position based on alignment
+                    # Wrap text to fit within box width
+                    wrapped_lines = wrap_text(draw, text, font, box_width)
+                    
+                    # Calculate total text height
+                    line_height = font_size * 1.2  # Add some line spacing
+                    total_text_height = len(wrapped_lines) * line_height
+                    
+                    # Calculate starting Y position to vertically center the text
                     x = box['x']
                     y = box['y']
-                    align = box.get('align', 'left')
-                    box_width = box.get('width', text_width)
                     
-                    if align == 'center':
-                        x += (box_width - text_width) / 2
-                    elif align == 'right':
-                        x += box_width - text_width
-                    
-                    # Draw text with all specified styles
-                    draw.text((x, y), text, fill=box['color'], font=font)
-                    
-                    # Draw underline if specified
-                    if box.get('underline', False):
-                        y_underline = y + text_height
-                        draw.line([(x, y_underline), (x + text_width, y_underline)], 
-                                fill=box['color'], width=max(1, int(font_size/20)))
+                    # Draw each line of text
+                    current_y = y
+                    for line in wrapped_lines:
+                        # Calculate line width for alignment
+                        line_width = draw.textlength(line, font=font)
+                        
+                        # Adjust x position based on alignment
+                        align = box.get('align', 'left')
+                        line_x = x
+                        if align == 'center':
+                            line_x = x + (box_width - line_width) / 2
+                        elif align == 'right':
+                            line_x = x + box_width - line_width
+                        
+                        # Draw the line
+                        draw.text((line_x, current_y), line, fill=box['color'], font=font)
+                        
+                        # Draw underline if specified
+                        if box.get('underline', False):
+                            y_underline = current_y + font_size
+                            draw.line([(line_x, y_underline), (line_x + line_width, y_underline)], 
+                                    fill=box['color'], width=max(1, int(font_size/20)))
+                        
+                        current_y += line_height
 
                 # Save the image to the ZIP file
                 img_path = f'image_{i+1}.png'
@@ -162,7 +204,7 @@ def preview_images():
             draw = ImageDraw.Draw(img)
             
             for box in text_boxes:
-                text = row[box['column']]
+                text = str(row[box['column']])
                 font_size = int(box['size'])
                 font_family = box.get('fontFamily', 'arial.ttf')
                 
@@ -181,30 +223,45 @@ def preview_images():
                     # Fallback to default font if specified font not found
                     font = ImageFont.truetype('arial.ttf', font_size)
                 
-                # Calculate text dimensions
-                bbox = draw.textbbox((0, 0), text, font=font)
-                text_width = bbox[2] - bbox[0]
-                text_height = bbox[3] - bbox[1]
+                # Get text box dimensions
+                box_width = box.get('width', 0)
+                box_height = box.get('height', 0)
                 
-                # Calculate text position based on alignment
+                # Wrap text to fit within box width
+                wrapped_lines = wrap_text(draw, text, font, box_width)
+                
+                # Calculate total text height
+                line_height = font_size * 1.2  # Add some line spacing
+                total_text_height = len(wrapped_lines) * line_height
+                
+                # Calculate starting Y position to vertically center the text
                 x = box['x']
                 y = box['y']
-                align = box.get('align', 'left')
-                box_width = box.get('width', text_width)
                 
-                if align == 'center':
-                    x += (box_width - text_width) / 2
-                elif align == 'right':
-                    x += box_width - text_width
-                
-                # Draw text with all specified styles
-                draw.text((x, y), text, fill=box['color'], font=font)
-                
-                # Draw underline if specified
-                if box.get('underline', False):
-                    y_underline = y + text_height
-                    draw.line([(x, y_underline), (x + text_width, y_underline)], 
-                            fill=box['color'], width=max(1, int(font_size/20)))
+                # Draw each line of text
+                current_y = y
+                for line in wrapped_lines:
+                    # Calculate line width for alignment
+                    line_width = draw.textlength(line, font=font)
+                    
+                    # Adjust x position based on alignment
+                    align = box.get('align', 'left')
+                    line_x = x
+                    if align == 'center':
+                        line_x = x + (box_width - line_width) / 2
+                    elif align == 'right':
+                        line_x = x + box_width - line_width
+                    
+                    # Draw the line
+                    draw.text((line_x, current_y), line, fill=box['color'], font=font)
+                    
+                    # Draw underline if specified
+                    if box.get('underline', False):
+                        y_underline = current_y + font_size
+                        draw.line([(line_x, y_underline), (line_x + line_width, y_underline)], 
+                                fill=box['color'], width=max(1, int(font_size/20)))
+                    
+                    current_y += line_height
             
             # Save preview image
             preview_filename = f'preview_{i}.png'
