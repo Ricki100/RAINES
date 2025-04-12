@@ -442,6 +442,8 @@ document.getElementById('previewBtn').addEventListener('click', async () => {
         const scaledX = box.offsetLeft * scaleX;
         const scaledY = box.offsetTop * scaleY;
         const scaledFontSize = parseInt(box.dataset.fontSize) * Math.max(scaleX, scaleY);
+        const scaledWidth = parseInt(box.dataset.width || box.offsetWidth) * scaleX;
+        const scaledHeight = parseInt(box.dataset.height || box.offsetHeight) * scaleY;
         
         return {
             column: box.dataset.column,
@@ -449,6 +451,8 @@ document.getElementById('previewBtn').addEventListener('click', async () => {
             y: scaledY,
             size: scaledFontSize,
             color: box.dataset.color,
+            width: scaledWidth,
+            height: scaledHeight,
             fontFamily: box.dataset.fontFamily,
             bold: box.dataset.bold === 'true',
             italic: box.dataset.italic === 'true',
@@ -465,7 +469,7 @@ document.getElementById('previewBtn').addEventListener('click', async () => {
             },
             body: JSON.stringify({
                 template: currentTemplate,
-                csv_data: csvData,
+                csv_data: csvData.slice(0, 3), // Only preview first 3 records
                 text_boxes: textBoxConfigs
             })
         });

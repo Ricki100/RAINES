@@ -157,34 +157,54 @@ def preview_images():
         
         preview_urls = []
         
-        # Load default font
-        try:
-            font_path = "arial.ttf"  # Default Windows font
-            if not os.path.exists(font_path):
-                font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"  # Default Linux font
-        except:
-            font_path = None
-        
         for i, row in enumerate(csv_data):
             img = Image.open(template_path)
             draw = ImageDraw.Draw(img)
             
             for box in text_boxes:
-                column = box['column']
-                if column in row:
-                    text = str(row[column])
-                    try:
-                        font = ImageFont.truetype(font_path, int(box['size']))
-                    except:
-                        font = ImageFont.load_default()
-                    
-                    # Apply text styling
-                    draw.text(
-                        (float(box['x']), float(box['y'])),
-                        text,
-                        font=font,
-                        fill=box['color']
-                    )
+                text = row[box['column']]
+                font_size = int(box['size'])
+                font_family = box.get('fontFamily', 'arial.ttf')
+                
+                # Handle font style
+                font_style = []
+                if box.get('bold', False):
+                    font_style.append('Bold')
+                if box.get('italic', False):
+                    font_style.append('Italic')
+                
+                # Construct font style string
+                font_style_str = ' '.join(font_style) if font_style else 'Regular'
+                try:
+                    font = ImageFont.truetype(font_family, font_size)
+                except:
+                    # Fallback to default font if specified font not found
+                    font = ImageFont.truetype('arial.ttf', font_size)
+                
+                # Calculate text dimensions
+                bbox = draw.textbbox((0, 0), text, font=font)
+                text_width = bbox[2] - bbox[0]
+                text_height = bbox[3] - bbox[1]
+                
+                # Calculate text position based on alignment
+                x = box['x']
+                y = box['y']
+                align = box.get('align', 'left')
+                box_width = box.get('width', text_width)
+                
+                if align == 'center':
+                    x += (box_width - text_width) / 2
+                elif align == 'right':
+                    x += box_width - text_width
+                
+                # Draw text with all specified styles
+                draw.text((x, y), text, fill=box['color'], font=font)
+                
+                # Draw underline if specified
+                if box.get('underline', False):
+                    y_underline = y + text_height
+                    draw.line([(x, y_underline), (x + text_width, y_underline)], 
+                            fill=box['color'], width=max(1, int(font_size/20)))
             
             # Save preview image
             preview_filename = f'preview_{i}.png'
