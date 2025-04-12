@@ -122,9 +122,13 @@ document.getElementById('addTextBox').addEventListener('click', () => {
     textBox.style.fontSize = `${fontSize}px`;
     textBox.style.color = color;
     textBox.style.fontFamily = fontFamily;
-    textBox.style.wordWrap = 'break-word';
-    textBox.style.overflowWrap = 'break-word';
-    textBox.style.whiteSpace = 'pre-wrap';
+    textBox.style.width = '150px';
+    textBox.style.height = '50px';
+    textBox.style.position = 'absolute';
+    textBox.style.padding = '5px';
+    textBox.style.boxSizing = 'border-box';
+    textBox.style.display = 'flex';
+    textBox.style.flexDirection = 'column';
     textBox.style.overflow = 'hidden';
     
     // Store styling data
@@ -136,12 +140,42 @@ document.getElementById('addTextBox').addEventListener('click', () => {
     textBox.dataset.italic = 'false';
     textBox.dataset.underline = 'false';
     textBox.dataset.align = 'left';
+    textBox.dataset.width = '150';
+    textBox.dataset.height = '50';
+    
+    // Create header
+    const headerDiv = document.createElement('div');
+    headerDiv.className = 'text-box-header';
+    headerDiv.textContent = column;
+    textBox.appendChild(headerDiv);
+    
+    // Create content wrapper
+    const contentWrapper = document.createElement('div');
+    contentWrapper.className = 'text-box-content-wrapper';
+    contentWrapper.style.flex = '1';
+    contentWrapper.style.overflow = 'hidden';
+    contentWrapper.style.width = '100%';
+    contentWrapper.style.position = 'relative';
+    textBox.appendChild(contentWrapper);
+    
+    // Create content
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'text-box-content';
+    contentDiv.style.wordWrap = 'break-word';
+    contentDiv.style.overflowWrap = 'break-word';
+    contentDiv.style.whiteSpace = 'pre-wrap';
+    contentDiv.style.width = '100%';
+    contentWrapper.appendChild(contentDiv);
+    
+    // Add resize handle
+    const resizeHandle = document.createElement('div');
+    resizeHandle.className = 'resize-handle';
+    textBox.appendChild(resizeHandle);
     
     // Position in the center of the canvas container
     const container = document.getElementById('canvasContainer');
     const rect = container.getBoundingClientRect();
-    
-    textBox.style.left = `${rect.width / 2 - 50}px`;
+    textBox.style.left = `${rect.width / 2 - 75}px`;
     textBox.style.top = `${rect.height / 2 - 25}px`;
     
     textBox.addEventListener('click', (e) => {
@@ -149,15 +183,11 @@ document.getElementById('addTextBox').addEventListener('click', () => {
         selectTextBox(textBox);
     });
     
-    // Add resize handle
-    const resizeHandle = document.createElement('div');
-    resizeHandle.className = 'resize-handle';
-    textBox.appendChild(resizeHandle);
-    
     makeDraggableAndResizable(textBox);
     document.getElementById('textBoxes').appendChild(textBox);
     textBoxes.push(textBox);
     selectTextBox(textBox);
+    updateTextBoxPreview(textBox);
 });
 
 function selectTextBox(textBox) {
@@ -203,6 +233,7 @@ function makeDraggableAndResizable(element) {
     function onMouseDown(e) {
         if (e.target.classList.contains('resize-handle')) {
             isResizing = true;
+            // Update initial dimensions each time we start resizing
             initialWidth = element.offsetWidth;
             initialHeight = element.offsetHeight;
         } else {
@@ -241,9 +272,11 @@ function makeDraggableAndResizable(element) {
             const deltaX = e.clientX - currentX;
             const deltaY = e.clientY - currentY;
             
-            const newWidth = Math.max(100, initialWidth + deltaX);
-            const newHeight = Math.max(40, initialHeight + deltaY);
+            // Calculate new dimensions based on the current mouse position
+            const newWidth = Math.max(100, initialWidth + (e.clientX - currentX));
+            const newHeight = Math.max(40, initialHeight + (e.clientY - currentY));
             
+            // Update element dimensions
             element.style.width = `${newWidth}px`;
             element.style.height = `${newHeight}px`;
             
@@ -251,6 +284,7 @@ function makeDraggableAndResizable(element) {
             element.dataset.width = newWidth;
             element.dataset.height = newHeight;
             
+            // Update text box preview with new dimensions
             updateTextBoxPreview(element);
         }
     }
@@ -260,6 +294,12 @@ function makeDraggableAndResizable(element) {
         isResizing = false;
         document.removeEventListener('mousemove', onMouseMove);
         document.removeEventListener('mouseup', onMouseUp);
+        
+        // Store final dimensions in the dataset
+        if (element.offsetWidth > 0 && element.offsetHeight > 0) {
+            element.dataset.width = element.offsetWidth;
+            element.dataset.height = element.offsetHeight;
+        }
     }
 }
 
@@ -512,19 +552,66 @@ document.getElementById('previewBtn').addEventListener('click', async () => {
 });
 
 function updateTextBoxPreview(textBox) {
-    // Update the preview text to show actual content
     const column = textBox.dataset.column;
     if (csvData && csvData.length > 0 && column in csvData[0]) {
         const previewText = csvData[0][column];
-        textBox.innerHTML = `
-            <div class="text-box-header">${column}</div>
-            <div class="text-box-content" style="word-wrap: break-word; overflow-wrap: break-word; white-space: pre-wrap;">${previewText}</div>
-        `;
         
-        // Add text wrapping styles to the text box itself
-        textBox.style.wordWrap = 'break-word';
-        textBox.style.overflowWrap = 'break-word';
-        textBox.style.whiteSpace = 'pre-wrap';
+        // Check if text box content elements exist
+        let headerDiv = textBox.querySelector('.text-box-header');
+        let contentDiv = textBox.querySelector('.text-box-content');
+        let resizeHandle = textBox.querySelector('.resize-handle');
+        let contentWrapper = textBox.querySelector('.text-box-content-wrapper');
+        
+        // Create elements if they don't exist
+        if (!headerDiv) {
+            headerDiv = document.createElement('div');
+            headerDiv.className = 'text-box-header';
+            textBox.appendChild(headerDiv);
+        }
+        
+        if (!contentWrapper) {
+            contentWrapper = document.createElement('div');
+            contentWrapper.className = 'text-box-content-wrapper';
+            textBox.appendChild(contentWrapper);
+        }
+        
+        if (!contentDiv) {
+            contentDiv = document.createElement('div');
+            contentDiv.className = 'text-box-content';
+            contentWrapper.appendChild(contentDiv);
+        } else if (contentDiv.parentElement !== contentWrapper) {
+            contentWrapper.appendChild(contentDiv);
+        }
+        
+        // Create resize handle if it doesn't exist
+        if (!resizeHandle) {
+            resizeHandle = document.createElement('div');
+            resizeHandle.className = 'resize-handle';
+            textBox.appendChild(resizeHandle);
+        }
+        
+        // Update content
+        headerDiv.textContent = column;
+        contentDiv.textContent = previewText;
+        
+        // Apply text wrapping styles to content div
+        contentDiv.style.wordWrap = 'break-word';
+        contentDiv.style.overflowWrap = 'break-word';
+        contentDiv.style.whiteSpace = 'pre-wrap';
+        contentDiv.style.width = '100%';
+        
+        // Apply wrapper styles
+        contentWrapper.style.flex = '1';
+        contentWrapper.style.overflow = 'hidden';
+        contentWrapper.style.width = '100%';
+        contentWrapper.style.position = 'relative';
+        
+        // Apply container styles
+        textBox.style.display = 'flex';
+        textBox.style.flexDirection = 'column';
+        textBox.style.position = 'absolute';
+        textBox.style.padding = '5px';
+        textBox.style.boxSizing = 'border-box';
         textBox.style.overflow = 'hidden';
     }
 } 
