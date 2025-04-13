@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, jsonify, send_file, url_for
 from werkzeug.utils import secure_filename
+from flask_cors import CORS
 import os
 import pandas as pd
 from PIL import Image, ImageDraw, ImageFont
@@ -13,11 +14,26 @@ from io import BytesIO
 import requests
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 app.config['UPLOAD_FOLDER'] = os.path.join('static', 'uploads')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
-# Ensure upload directory exists
+# Ensure required directories exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs(os.path.join('static', 'previews'), exist_ok=True)
+os.makedirs(os.path.join('static', 'fonts'), exist_ok=True)
+
+# Font management
+FONTS_DIR = os.path.join('static', 'fonts')
+DEFAULT_FONT = os.path.join(FONTS_DIR, 'arial.ttf')
+
+# Ensure fonts directory exists
+os.makedirs(FONTS_DIR, exist_ok=True)
+
+def get_font_path(font_name, bold=False, italic=False):
+    """Get the appropriate font file path based on name and style."""
+    # Since we only have arial.ttf, we'll use it and simulate bold/italic
+    return DEFAULT_FONT
 
 @app.route('/')
 def index():
@@ -55,9 +71,12 @@ def upload_csv():
     
     try:
         df = pd.read_csv(file)
+        preview_rows = min(20, len(df))  # Show up to 20 rows in preview
         return jsonify({
             'columns': df.columns.tolist(),
-            'preview': df.head().to_dict('records')
+            'preview': df.head(preview_rows).to_dict('records'),
+            'all_data': df.to_dict('records'),  # Send all rows
+            'total_rows': len(df)
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 400
@@ -109,49 +128,87 @@ def wrap_text_to_width(draw, text, font, max_width):
 def draw_text_box(draw, box, text, img_width, img_height):
     """Helper function to draw text box with proper wrapping and alignment"""
     try:
-        font_size = int(box['size'])
-        font_family = box.get('fontFamily', 'arial.ttf')
-        try:
-            font = ImageFont.truetype(font_family, font_size)
-        except:
-            font = ImageFont.truetype('arial.ttf', font_size)
+        # Get font size and validate
+        font_size = int(box.get('fontSize', 24))
+        if font_size < 8:
+            font_size = 8
+        elif font_size > 200:
+            font_size = 200
+            
+        # Get font family and style
+        font_family = box.get('fontFamily', 'Arial')
+        
+        # Convert string 'true'/'false' to boolean
+        def str_to_bool(val):
+            if isinstance(val, bool):
+                return val
+            return str(val).lower() == 'true'
+        
+        bold = str_to_bool(box.get('bold', False))
+        italic = str_to_bool(box.get('italic', False))
+        underline = str_to_bool(box.get('underline', False))
+        
+        # Get the font and apply stroke for bold simulation if needed
+        font = ImageFont.truetype(DEFAULT_FONT, font_size)
+        stroke_width = 0
+        if bold:
+            stroke_width = max(1, font_size // 30)  # Scale stroke width with font size
         
         # Get box dimensions and position
-        x = float(box['x'])
-        y = float(box['y'])
+        x = float(box.get('x', 0))
+        y = float(box.get('y', 0))
         box_width = float(box.get('width', img_width - x))
         box_height = float(box.get('height', img_height - y))
         
+        # Validate color
+        color = box.get('color', '#000000')
+        if not color.startswith('#'):
+            color = '#000000'
+        # Convert color from hex to RGB
+        color = tuple(int(color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
+        
         # Wrap text to fit box width
-        wrapped_lines = wrap_text_to_width(draw, text, font, box_width)
+        lines = wrap_text_to_width(draw, text, font, box_width - (stroke_width * 2 if bold else 0))
         
         # Calculate line height and total text height
         line_spacing = font_size * 1.2
-        total_height = len(wrapped_lines) * line_spacing
+        total_height = len(lines) * line_spacing
+        
+        # Adjust starting y position to respect vertical alignment
+        if total_height < box_height:
+            y = y + (box_height - total_height) // 2
         
         # Draw each line with proper alignment
         current_y = y
-        for line in wrapped_lines:
+        for line in lines:
             # Calculate line width for alignment
-            line_width = draw.textlength(line, font=font)
+            bbox = draw.textbbox((0, 0), line, font=font)
+            line_width = bbox[2] - bbox[0]
             
             # Calculate x position based on alignment
             line_x = x
             align = box.get('align', 'left')
             
             if align == 'center':
-                line_x = x + (box_width - line_width) / 2
+                line_x = x + (box_width - line_width) // 2
             elif align == 'right':
                 line_x = x + box_width - line_width
             
-            # Draw the line
-            draw.text((line_x, current_y), line, fill=box['color'], font=font)
+            # Draw the line with stroke for bold simulation
+            if bold:
+                # Draw the stroke
+                draw.text((line_x, current_y), line, font=font, fill=color, stroke_width=stroke_width, stroke_fill=color)
+            else:
+                draw.text((line_x, current_y), line, font=font, fill=color)
             
             # Draw underline if specified
-            if box.get('underline', False):
+            if underline:
                 underline_y = current_y + font_size
+                underline_width = max(1, font_size // 20)
+                if bold:
+                    underline_width = max(underline_width, stroke_width)
                 draw.line([(line_x, underline_y), (line_x + line_width, underline_y)],
-                         fill=box['color'], width=max(1, int(font_size/20)))
+                         fill=color, width=underline_width)
             
             current_y += line_spacing
             
@@ -161,6 +218,9 @@ def draw_text_box(draw, box, text, img_width, img_height):
                 
     except Exception as e:
         print(f"Error drawing text box: {str(e)}")
+        # Draw a red rectangle to indicate error
+        draw.rectangle([x, y, x + box_width, y + box_height], outline='red', width=2)
+        draw.text((x + 10, y + box_height/2), f"Error: {str(e)[:50]}...", fill='red')
 
 def draw_image_box(draw, box, image_url, img_width, img_height):
     """Helper function to draw image from URL into a box"""
@@ -389,6 +449,130 @@ def generate_images():
         # Clean up temporary directory
         if 'temp_dir' in locals():
             shutil.rmtree(temp_dir)
+
+def wrap_text(draw, text, font, max_width):
+    """Wrap text to fit within a given width."""
+    words = text.split()
+    lines = []
+    current_line = []
+    
+    for word in words:
+        # Try adding the word to the current line
+        test_line = current_line + [word]
+        test_text = ' '.join(test_line)
+        bbox = draw.textbbox((0, 0), test_text, font=font)
+        test_width = bbox[2] - bbox[0]
+        
+        if test_width <= max_width:
+            current_line.append(word)
+        else:
+            if current_line:
+                lines.append(' '.join(current_line))
+                current_line = [word]
+            else:
+                lines.append(word)
+    
+    if current_line:
+        lines.append(' '.join(current_line))
+    
+    return lines
+
+@app.route('/generate_text_images', methods=['POST'])
+def generate_text_images():
+    try:
+        data = request.get_json()
+        text_boxes = data.get('text_boxes', [])
+        csv_data = data.get('csv_data', [])
+        
+        if not text_boxes or not csv_data:
+            return jsonify({'error': 'Missing text boxes or CSV data'}), 400
+            
+        # Create previews directory if it doesn't exist
+        os.makedirs('static/previews', exist_ok=True)
+        
+        # Clear existing previews
+        for file in os.listdir('static/previews'):
+            if file.endswith('.png'):
+                os.remove(os.path.join('static/previews', file))
+        
+        preview_urls = []
+        
+        for i, row in enumerate(csv_data):
+            # Create a new image for each row
+            img = Image.new('RGBA', (800, 600), (255, 255, 255, 255))  # White background
+            draw = ImageDraw.Draw(img)
+            
+            for text_box in text_boxes:
+                column = text_box.get('column')
+                if column in row:
+                    text = str(row[column])
+                    # Use the consolidated draw_text_box function
+                    draw_text_box(draw, text_box, text, 800, 600)
+            
+            # Save the image
+            filename = f'preview_{i+1}.png'
+            filepath = os.path.join('static/previews', filename)
+            img.save(filepath)
+            preview_urls.append(f'/static/previews/{filename}')
+        
+        return jsonify({'preview_urls': preview_urls})
+        
+    except Exception as e:
+        print(f"Error generating images: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/text_only')
+def text_only():
+    return render_template('text_only.html')
+
+@app.route('/download_text_previews', methods=['POST'])
+def download_text_previews():
+    try:
+        data = request.get_json()
+        preview_urls = data['preview_urls']
+        
+        # Create a BytesIO object to store the zip file
+        memory_file = BytesIO()
+        
+        # Create the zip file with proper compression
+        with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+            preview_dir = os.path.join('static', 'previews')
+            
+            # Add each preview image to the zip file
+            for i, url in enumerate(preview_urls):
+                # Extract filename from URL
+                filename = os.path.basename(url)
+                filepath = os.path.join(preview_dir, filename)
+                
+                # Verify file exists and is readable
+                if os.path.exists(filepath) and os.access(filepath, os.R_OK):
+                    # Read the image file in binary mode
+                    with open(filepath, 'rb') as img_file:
+                        img_data = img_file.read()
+                        # Write the image data to the zip with a sequential name
+                        zf.writestr(f'image_{i+1}.png', img_data)
+        
+        # Reset the pointer to the beginning of the BytesIO object
+        memory_file.seek(0)
+        
+        # Create the response with the zip file
+        response = send_file(
+            memory_file,
+            mimetype='application/zip',
+            as_attachment=True,
+            download_name='text_previews.zip'
+        )
+        
+        # Add headers to prevent caching
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        
+        return response
+            
+    except Exception as e:
+        print(f"Error in download_text_previews: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True) 

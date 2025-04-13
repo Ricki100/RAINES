@@ -12,160 +12,185 @@
     <div class="container mt-4">
         <h1 class="text-center mb-4">Data Merge Tool</h1>
         
-        <div class="row">
-            <!-- Template Upload Section -->
-            <div class="col-md-6">
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5>1. Upload Template</h5>
-                    </div>
-                    <div class="card-body">
-                        <form id="templateForm">
-                            <div class="mb-3">
-                                <label for="template" class="form-label">Upload Background Image</label>
-                                <input type="file" class="form-control" id="template" accept="image/*" required>
-                            </div>
-                            <button type="submit" class="btn btn-primary">Upload Template</button>
-                        </form>
-                        <div id="templatePreview" class="mt-3">
-                            <img id="previewImage" class="img-fluid d-none" style="max-height: 300px;">
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <!-- Tab Navigation -->
+        <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="template-tab" data-bs-toggle="tab" data-bs-target="#template" type="button" role="tab" aria-controls="template" aria-selected="true">
+                    <i class="bi bi-image"></i> Template Generator
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="textonly-tab" data-bs-toggle="tab" data-bs-target="#textonly" type="button" role="tab" aria-controls="textonly" aria-selected="false">
+                    <i class="bi bi-text-left"></i> Text Only Generator
+                </button>
+            </li>
+        </ul>
 
-            <!-- CSV Upload Section -->
-            <div class="col-md-6">
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5>2. Upload CSV Data</h5>
-                    </div>
-                    <div class="card-body">
-                        <form id="csvForm">
-                            <div class="mb-3">
-                                <label for="csv" class="form-label">Upload CSV File</label>
-                                <input type="file" class="form-control" id="csv" accept=".csv" required>
-                            </div>
-                            <button type="submit" class="btn btn-primary">Upload CSV</button>
-                        </form>
-                        <div id="csvPreview" class="mt-3">
-                            <table class="table table-sm">
-                                <thead id="csvHeaders"></thead>
-                                <tbody id="csvData"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Text Box Configuration -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5>3. Configure Text Boxes</h5>
-            </div>
-            <div class="card-body">
+        <!-- Tab Content -->
+        <div class="tab-content" id="myTabContent">
+            <!-- Template Generator Tab -->
+            <div class="tab-pane fade show active" id="template" role="tabpanel" aria-labelledby="template-tab">
                 <div class="row">
-                    <div class="col-md-8">
-                        <div id="canvasContainer" class="position-relative">
-                            <canvas id="templateCanvas"></canvas>
-                            <div id="textBoxes"></div>
+                    <!-- Template Upload Section -->
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5>1. Upload Template</h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="templateForm">
+                                    <div class="mb-3">
+                                        <label for="template" class="form-label">Upload Background Image</label>
+                                        <input type="file" class="form-control" id="template" accept="image/*" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Upload Template</button>
+                                </form>
+                                <div id="templatePreview" class="mt-3">
+                                    <img id="previewImage" class="img-fluid d-none" style="max-height: 300px;">
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <form id="textBoxForm" class="p-3 border rounded">
-                            <div class="mb-3">
-                                <label class="form-label">Column Mapping</label>
-                                <select class="form-select" id="columnSelect"></select>
+
+                    <!-- CSV Upload Section -->
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5>2. Upload CSV Data</h5>
                             </div>
+                            <div class="card-body">
+                                <form id="csvForm">
+                                    <div class="mb-3">
+                                        <label for="csv" class="form-label">Upload CSV File</label>
+                                        <input type="file" class="form-control" id="csv" accept=".csv" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Upload CSV</button>
+                                </form>
+                                <div id="csvPreview" class="mt-3">
+                                    <table class="table table-sm">
+                                        <thead id="csvHeaders"></thead>
+                                        <tbody id="csvData"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Text Box Configuration -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>3. Configure Text Boxes</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div id="canvasContainer" class="position-relative">
+                                    <canvas id="templateCanvas"></canvas>
+                                    <div id="textBoxes"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <form id="textBoxForm" class="p-3 border rounded">
+                                    <div class="mb-3">
+                                        <label class="form-label">Column Mapping</label>
+                                        <select class="form-select" id="columnSelect"></select>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Font Family</label>
+                                        <select class="form-select" id="fontFamily">
+                                            <option value="Arial">Arial</option>
+                                            <option value="Times New Roman">Times New Roman</option>
+                                            <option value="Helvetica">Helvetica</option>
+                                            <option value="Georgia">Georgia</option>
+                                            <option value="Verdana">Verdana</option>
+                                            <option value="Courier New">Courier New</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Font Size (px)</label>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control" id="fontSize" value="24" min="8" max="200">
+                                            <button type="button" class="btn btn-outline-secondary" id="increaseFontSize">+</button>
+                                            <button type="button" class="btn btn-outline-secondary" id="decreaseFontSize">-</button>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Font Style</label>
+                                        <div class="btn-group w-100" role="group">
+                                            <button type="button" class="btn btn-outline-secondary" id="boldText">B</button>
+                                            <button type="button" class="btn btn-outline-secondary" id="italicText">I</button>
+                                            <button type="button" class="btn btn-outline-secondary" id="underlineText">U</button>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Text Alignment</label>
+                                        <div class="btn-group w-100" role="group">
+                                            <button type="button" class="btn btn-outline-secondary" data-align="left">Left</button>
+                                            <button type="button" class="btn btn-outline-secondary" data-align="center">Center</button>
+                                            <button type="button" class="btn btn-outline-secondary" data-align="right">Right</button>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Font Color</label>
+                                        <div class="input-group">
+                                            <input type="color" class="form-control form-control-color w-100" id="fontColor" value="#000000">
+                                        </div>
+                                    </div>
+
+                                    <button type="button" class="btn btn-primary w-100" id="addTextBox">Add Text Box</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Generate Section -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>4. Preview and Generate Images</h5>
+                    </div>
+                    <div class="card-body">
+                        <button id="previewBtn" class="btn btn-primary mb-3">Preview Images</button>
+                        
+                        <!-- Preview Carousel -->
+                        <div id="previewCarousel" class="carousel slide mb-4 d-none" data-bs-ride="false">
+                            <div class="carousel-indicators">
+                                <!-- Indicators will be inserted here -->
+                            </div>
+                            <div class="carousel-inner">
+                                <!-- Preview images will be inserted here -->
+                            </div>
+                            <button class="carousel-control-prev" type="button" data-bs-target="#previewCarousel" data-bs-slide="prev">
+                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden">Previous</span>
+                            </button>
+                            <button class="carousel-control-next" type="button" data-bs-target="#previewCarousel" data-bs-slide="next">
+                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden">Next</span>
+                            </button>
                             
-                            <div class="mb-3">
-                                <label class="form-label">Font Family</label>
-                                <select class="form-select" id="fontFamily">
-                                    <option value="Arial">Arial</option>
-                                    <option value="Times New Roman">Times New Roman</option>
-                                    <option value="Helvetica">Helvetica</option>
-                                    <option value="Georgia">Georgia</option>
-                                    <option value="Verdana">Verdana</option>
-                                    <option value="Courier New">Courier New</option>
-                                </select>
+                            <!-- Download Button - Inside Carousel -->
+                            <div class="carousel-caption position-static bg-light py-3 mb-0">
+                                <button id="downloadPreviewBtn" class="btn btn-primary btn-lg">
+                                    <i class="bi bi-download"></i> Download All Previews
+                                </button>
                             </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Font Size (px)</label>
-                                <div class="input-group">
-                                    <input type="number" class="form-control" id="fontSize" value="24" min="8" max="200">
-                                    <button type="button" class="btn btn-outline-secondary" id="increaseFontSize">+</button>
-                                    <button type="button" class="btn btn-outline-secondary" id="decreaseFontSize">-</button>
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Font Style</label>
-                                <div class="btn-group w-100" role="group">
-                                    <button type="button" class="btn btn-outline-secondary" id="boldText">B</button>
-                                    <button type="button" class="btn btn-outline-secondary" id="italicText">I</button>
-                                    <button type="button" class="btn btn-outline-secondary" id="underlineText">U</button>
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Text Alignment</label>
-                                <div class="btn-group w-100" role="group">
-                                    <button type="button" class="btn btn-outline-secondary" data-align="left">Left</button>
-                                    <button type="button" class="btn btn-outline-secondary" data-align="center">Center</button>
-                                    <button type="button" class="btn btn-outline-secondary" data-align="right">Right</button>
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Font Color</label>
-                                <div class="input-group">
-                                    <input type="color" class="form-control form-control-color w-100" id="fontColor" value="#000000">
-                                </div>
-                            </div>
-
-                            <button type="button" class="btn btn-primary w-100" id="addTextBox">Add Text Box</button>
-                        </form>
+                        </div>
+                        
+                        <div id="generationStatus" class="mt-3"></div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Generate Section -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5>4. Preview and Generate Images</h5>
-            </div>
-            <div class="card-body">
-                <button id="previewBtn" class="btn btn-primary mb-3">Preview Images</button>
-                
-                <!-- Preview Carousel -->
-                <div id="previewCarousel" class="carousel slide mb-4 d-none" data-bs-ride="false">
-                    <div class="carousel-indicators">
-                        <!-- Indicators will be inserted here -->
-                    </div>
-                    <div class="carousel-inner">
-                        <!-- Preview images will be inserted here -->
-                    </div>
-                    <button class="carousel-control-prev" type="button" data-bs-target="#previewCarousel" data-bs-slide="prev">
-                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                        <span class="visually-hidden">Previous</span>
-                    </button>
-                    <button class="carousel-control-next" type="button" data-bs-target="#previewCarousel" data-bs-slide="next">
-                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                        <span class="visually-hidden">Next</span>
-                    </button>
-                    
-                    <!-- Download Button - Inside Carousel -->
-                    <div class="carousel-caption position-static bg-light py-3 mb-0">
-                        <button id="downloadPreviewBtn" class="btn btn-primary btn-lg">
-                            <i class="bi bi-download"></i> Download All Previews
-                        </button>
-                    </div>
-                </div>
-                
-                <div id="generationStatus" class="mt-3"></div>
+            <!-- Text Only Generator Tab -->
+            <div class="tab-pane fade" id="textonly" role="tabpanel" aria-labelledby="textonly-tab">
+                <iframe src="{{ url_for('text_only') }}" style="width: 100%; height: 100vh; border: none;"></iframe>
             </div>
         </div>
     </div>

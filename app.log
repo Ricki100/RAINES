@@ -1,0 +1,318 @@
+2025-04-13 08:43:52,761 - werkzeug - WARNING -  * Debugger is active!
+2025-04-13 08:43:52,766 - werkzeug - INFO -  * Debugger PIN: 645-846-043
+2025-04-13 08:44:03,361 - werkzeug - INFO -  * Detected change in 'C:\\Users\\user\\Documents\\GitHub\\DATA MERGE 4\\app.py', reloading
+2025-04-13 08:49:51,010 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.100.6:5000
+2025-04-13 08:49:51,011 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-04-13 08:49:51,015 - werkzeug - INFO -  * Restarting with stat
+2025-04-13 08:49:52,944 - werkzeug - WARNING -  * Debugger is active!
+2025-04-13 08:49:52,948 - werkzeug - INFO -  * Debugger PIN: 645-846-043
+2025-04-13 08:50:20,189 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:50:20] "GET / HTTP/1.1" 200 -
+2025-04-13 08:50:20,401 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:50:20] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+2025-04-13 08:50:20,405 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:50:20] "GET /static/script.js HTTP/1.1" 200 -
+2025-04-13 08:50:45,843 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:50:45] "POST /upload_template HTTP/1.1" 200 -
+2025-04-13 08:50:45,871 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:50:45] "GET /static/uploads/image.jpg HTTP/1.1" 200 -
+2025-04-13 08:50:48,499 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:50:48] "POST /upload_csv HTTP/1.1" 200 -
+2025-04-13 08:50:53,018 - __main__ - ERROR - Error saving preview 0: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:50:53,019 - __main__ - ERROR - Error saving preview 1: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:50:53,019 - __main__ - ERROR - Error saving preview 2: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:50:53,020 - __main__ - ERROR - Error saving preview 3: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:50:53,020 - __main__ - ERROR - Error saving preview 4: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:50:53,022 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:50:53] "[35m[1mPOST /preview_images HTTP/1.1[0m" 500 -
+2025-04-13 08:50:55,434 - __main__ - ERROR - Error saving preview 0: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:50:55,435 - __main__ - ERROR - Error saving preview 1: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:50:55,435 - __main__ - ERROR - Error saving preview 2: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:50:55,436 - __main__ - ERROR - Error saving preview 3: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:50:55,436 - __main__ - ERROR - Error saving preview 4: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:50:55,437 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:50:55] "[35m[1mPOST /preview_images HTTP/1.1[0m" 500 -
+2025-04-13 08:50:59,051 - __main__ - ERROR - Error saving preview 0: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:50:59,052 - __main__ - ERROR - Error saving preview 1: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:50:59,053 - __main__ - ERROR - Error saving preview 2: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:50:59,053 - __main__ - ERROR - Error saving preview 3: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:50:59,054 - __main__ - ERROR - Error saving preview 4: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:50:59,055 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:50:59] "[35m[1mPOST /preview_images HTTP/1.1[0m" 500 -
+2025-04-13 08:51:08,354 - __main__ - ERROR - Error saving preview 0: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:08,355 - __main__ - ERROR - Error saving preview 1: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:08,355 - __main__ - ERROR - Error saving preview 2: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:08,356 - __main__ - ERROR - Error saving preview 3: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:08,356 - __main__ - ERROR - Error saving preview 4: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:08,357 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:51:08] "[35m[1mPOST /preview_images HTTP/1.1[0m" 500 -
+2025-04-13 08:51:09,887 - __main__ - ERROR - Error saving preview 0: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:09,888 - __main__ - ERROR - Error saving preview 1: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:09,888 - __main__ - ERROR - Error saving preview 2: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:09,889 - __main__ - ERROR - Error saving preview 3: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:09,889 - __main__ - ERROR - Error saving preview 4: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:09,890 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:51:09] "[35m[1mPOST /preview_images HTTP/1.1[0m" 500 -
+2025-04-13 08:51:12,278 - __main__ - ERROR - Error saving preview 0: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:12,280 - __main__ - ERROR - Error saving preview 1: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:12,280 - __main__ - ERROR - Error saving preview 2: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:12,281 - __main__ - ERROR - Error saving preview 3: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:12,281 - __main__ - ERROR - Error saving preview 4: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:12,282 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:51:12] "[35m[1mPOST /preview_images HTTP/1.1[0m" 500 -
+2025-04-13 08:51:14,490 - __main__ - ERROR - Error saving preview 0: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:14,492 - __main__ - ERROR - Error saving preview 1: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:14,492 - __main__ - ERROR - Error saving preview 2: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:14,493 - __main__ - ERROR - Error saving preview 3: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:14,494 - __main__ - ERROR - Error saving preview 4: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:14,496 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:51:14] "[35m[1mPOST /preview_images HTTP/1.1[0m" 500 -
+2025-04-13 08:51:19,240 - __main__ - ERROR - Error saving preview 0: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:19,242 - __main__ - ERROR - Error saving preview 1: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:19,243 - __main__ - ERROR - Error saving preview 2: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:19,244 - __main__ - ERROR - Error saving preview 3: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:19,245 - __main__ - ERROR - Error saving preview 4: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:19,246 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:51:19] "[35m[1mPOST /preview_images HTTP/1.1[0m" 500 -
+2025-04-13 08:51:20,536 - __main__ - ERROR - Error saving preview 0: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:20,537 - __main__ - ERROR - Error saving preview 1: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:20,537 - __main__ - ERROR - Error saving preview 2: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:20,538 - __main__ - ERROR - Error saving preview 3: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:20,538 - __main__ - ERROR - Error saving preview 4: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:20,539 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:51:20] "[35m[1mPOST /preview_images HTTP/1.1[0m" 500 -
+2025-04-13 08:51:22,534 - __main__ - ERROR - Error saving preview 0: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:22,534 - __main__ - ERROR - Error saving preview 1: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:22,535 - __main__ - ERROR - Error saving preview 2: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:22,535 - __main__ - ERROR - Error saving preview 3: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:22,536 - __main__ - ERROR - Error saving preview 4: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:22,537 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:51:22] "[35m[1mPOST /preview_images HTTP/1.1[0m" 500 -
+2025-04-13 08:51:26,051 - __main__ - ERROR - Error saving preview 0: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:26,051 - __main__ - ERROR - Error saving preview 1: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:26,052 - __main__ - ERROR - Error saving preview 2: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:26,052 - __main__ - ERROR - Error saving preview 3: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:26,052 - __main__ - ERROR - Error saving preview 4: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:26,053 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:51:26] "[35m[1mPOST /preview_images HTTP/1.1[0m" 500 -
+2025-04-13 08:51:27,503 - __main__ - ERROR - Error saving preview 0: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:27,504 - __main__ - ERROR - Error saving preview 1: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:27,504 - __main__ - ERROR - Error saving preview 2: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:27,505 - __main__ - ERROR - Error saving preview 3: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:27,505 - __main__ - ERROR - Error saving preview 4: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:27,506 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:51:27] "[35m[1mPOST /preview_images HTTP/1.1[0m" 500 -
+2025-04-13 08:51:28,770 - __main__ - ERROR - Error saving preview 0: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:28,772 - __main__ - ERROR - Error saving preview 1: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:28,775 - __main__ - ERROR - Error saving preview 2: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:28,777 - __main__ - ERROR - Error saving preview 3: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:28,778 - __main__ - ERROR - Error saving preview 4: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:28,780 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:51:28] "[35m[1mPOST /preview_images HTTP/1.1[0m" 500 -
+2025-04-13 08:51:29,949 - __main__ - ERROR - Error saving preview 0: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:29,950 - __main__ - ERROR - Error saving preview 1: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:29,950 - __main__ - ERROR - Error saving preview 2: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:29,951 - __main__ - ERROR - Error saving preview 3: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:29,951 - __main__ - ERROR - Error saving preview 4: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:51:29,952 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:51:29] "[35m[1mPOST /preview_images HTTP/1.1[0m" 500 -
+2025-04-13 08:52:35,031 - werkzeug - INFO -  * Detected change in 'C:\\Users\\user\\Documents\\GitHub\\DATA MERGE 4\\app.py', reloading
+2025-04-13 08:52:35,167 - werkzeug - INFO -  * Restarting with stat
+2025-04-13 08:52:37,090 - werkzeug - WARNING -  * Debugger is active!
+2025-04-13 08:52:37,094 - werkzeug - INFO -  * Debugger PIN: 645-846-043
+2025-04-13 08:52:58,142 - werkzeug - INFO -  * Detected change in 'C:\\Users\\user\\Documents\\GitHub\\DATA MERGE 4\\app.py', reloading
+2025-04-13 08:52:58,270 - werkzeug - INFO -  * Restarting with stat
+2025-04-13 08:53:00,126 - werkzeug - WARNING -  * Debugger is active!
+2025-04-13 08:53:00,130 - werkzeug - INFO -  * Debugger PIN: 645-846-043
+2025-04-13 08:54:35,201 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.100.6:5000
+2025-04-13 08:54:35,202 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-04-13 08:54:35,205 - werkzeug - INFO -  * Restarting with stat
+2025-04-13 08:54:36,750 - werkzeug - WARNING -  * Debugger is active!
+2025-04-13 08:54:36,753 - werkzeug - INFO -  * Debugger PIN: 645-846-043
+2025-04-13 08:54:40,522 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:54:40] "GET / HTTP/1.1" 200 -
+2025-04-13 08:54:40,756 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:54:40] "GET /static/style.css HTTP/1.1" 200 -
+2025-04-13 08:54:40,760 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:54:40] "GET /static/script.js HTTP/1.1" 200 -
+2025-04-13 08:54:40,786 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:54:40] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-13 08:54:42,434 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:54:42] "POST /upload_template HTTP/1.1" 200 -
+2025-04-13 08:54:42,461 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:54:42] "GET /static/uploads/image.jpg HTTP/1.1" 200 -
+2025-04-13 08:54:43,350 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:54:43] "POST /upload_csv HTTP/1.1" 200 -
+2025-04-13 08:54:48,257 - __main__ - ERROR - Error processing preview 0: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:54:48,258 - __main__ - ERROR - Error processing preview 1: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:54:48,258 - __main__ - ERROR - Error processing preview 2: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:54:48,259 - __main__ - ERROR - Error processing preview 3: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:54:48,260 - __main__ - ERROR - Error processing preview 4: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:54:48,261 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:54:48] "[35m[1mPOST /preview_images HTTP/1.1[0m" 500 -
+2025-04-13 08:54:50,668 - __main__ - ERROR - Error processing preview 0: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:54:50,669 - __main__ - ERROR - Error processing preview 1: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:54:50,669 - __main__ - ERROR - Error processing preview 2: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:54:50,670 - __main__ - ERROR - Error processing preview 3: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:54:50,670 - __main__ - ERROR - Error processing preview 4: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:54:50,671 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:54:50] "[35m[1mPOST /preview_images HTTP/1.1[0m" 500 -
+2025-04-13 08:54:53,355 - __main__ - ERROR - Error processing preview 0: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:54:53,356 - __main__ - ERROR - Error processing preview 1: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:54:53,356 - __main__ - ERROR - Error processing preview 2: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:54:53,356 - __main__ - ERROR - Error processing preview 3: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:54:53,357 - __main__ - ERROR - Error processing preview 4: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:54:53,358 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:54:53] "[35m[1mPOST /preview_images HTTP/1.1[0m" 500 -
+2025-04-13 08:54:56,744 - __main__ - ERROR - Error processing preview 0: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:54:56,744 - __main__ - ERROR - Error processing preview 1: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:54:56,745 - __main__ - ERROR - Error processing preview 2: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:54:56,745 - __main__ - ERROR - Error processing preview 3: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:54:56,745 - __main__ - ERROR - Error processing preview 4: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:54:56,746 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:54:56] "[35m[1mPOST /preview_images HTTP/1.1[0m" 500 -
+2025-04-13 08:54:58,022 - __main__ - ERROR - Error processing preview 0: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:54:58,022 - __main__ - ERROR - Error processing preview 1: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:54:58,023 - __main__ - ERROR - Error processing preview 2: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:54:58,023 - __main__ - ERROR - Error processing preview 3: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:54:58,024 - __main__ - ERROR - Error processing preview 4: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:54:58,024 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:54:58] "[35m[1mPOST /preview_images HTTP/1.1[0m" 500 -
+2025-04-13 08:55:02,567 - __main__ - ERROR - Error processing preview 0: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:55:02,568 - __main__ - ERROR - Error processing preview 1: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:55:02,568 - __main__ - ERROR - Error processing preview 2: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:55:02,569 - __main__ - ERROR - Error processing preview 3: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:55:02,569 - __main__ - ERROR - Error processing preview 4: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:55:02,570 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:55:02] "[35m[1mPOST /preview_images HTTP/1.1[0m" 500 -
+2025-04-13 08:55:03,873 - __main__ - ERROR - Error processing preview 0: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:55:03,875 - __main__ - ERROR - Error processing preview 1: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:55:03,875 - __main__ - ERROR - Error processing preview 2: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:55:03,875 - __main__ - ERROR - Error processing preview 3: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:55:03,876 - __main__ - ERROR - Error processing preview 4: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:55:03,877 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:55:03] "[35m[1mPOST /preview_images HTTP/1.1[0m" 500 -
+2025-04-13 08:55:04,322 - __main__ - ERROR - Error processing preview 0: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:55:04,323 - __main__ - ERROR - Error processing preview 1: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:55:04,323 - __main__ - ERROR - Error processing preview 2: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:55:04,323 - __main__ - ERROR - Error processing preview 3: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:55:04,324 - __main__ - ERROR - Error processing preview 4: process_single_image() got multiple values for argument 'img_width'
+2025-04-13 08:55:04,325 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:55:04] "[35m[1mPOST /preview_images HTTP/1.1[0m" 500 -
+2025-04-13 08:56:49,177 - werkzeug - INFO -  * Detected change in 'C:\\Users\\user\\Documents\\GitHub\\DATA MERGE 4\\app.py', reloading
+2025-04-13 08:56:49,314 - werkzeug - INFO -  * Restarting with stat
+2025-04-13 08:56:51,336 - werkzeug - WARNING -  * Debugger is active!
+2025-04-13 08:56:51,340 - werkzeug - INFO -  * Debugger PIN: 645-846-043
+2025-04-13 08:58:48,402 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:58:48] "GET / HTTP/1.1" 200 -
+2025-04-13 08:58:48,580 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:58:48] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+2025-04-13 08:58:48,588 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:58:48] "[36mGET /static/script.js HTTP/1.1[0m" 304 -
+2025-04-13 08:58:51,167 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:58:51] "GET / HTTP/1.1" 200 -
+2025-04-13 08:58:51,193 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:58:51] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+2025-04-13 08:58:51,194 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:58:51] "[36mGET /static/script.js HTTP/1.1[0m" 304 -
+2025-04-13 08:59:07,710 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:59:07] "POST /upload_template HTTP/1.1" 200 -
+2025-04-13 08:59:07,735 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:59:07] "GET /static/uploads/image.jpg HTTP/1.1" 200 -
+2025-04-13 08:59:08,672 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:59:08] "POST /upload_csv HTTP/1.1" 200 -
+2025-04-13 08:59:17,273 - __main__ - ERROR - Error processing image from https://raines.africa/product/apple-ipad-10-9-inch-wifi-64gb-blue/: URL does not point to an image: text/html; charset=UTF-8
+2025-04-13 08:59:17,274 - __main__ - ERROR - Error processing image URL: URL does not point to an image: text/html; charset=UTF-8
+2025-04-13 08:59:24,177 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:59:24] "POST /preview_images HTTP/1.1" 200 -
+2025-04-13 08:59:24,210 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:59:24] "GET /static/uploads/previews/preview_0.png?t=1744527564182 HTTP/1.1" 200 -
+2025-04-13 08:59:24,210 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:59:24] "GET /static/uploads/previews/preview_1.png?t=1744527564182 HTTP/1.1" 200 -
+2025-04-13 08:59:24,222 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:59:24] "GET /static/uploads/previews/preview_2.png?t=1744527564182 HTTP/1.1" 200 -
+2025-04-13 08:59:24,227 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:59:24] "GET /static/uploads/previews/preview_4.png?t=1744527564182 HTTP/1.1" 200 -
+2025-04-13 08:59:24,239 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:59:24] "GET /static/uploads/previews/preview_3.png?t=1744527564182 HTTP/1.1" 200 -
+2025-04-13 08:59:31,918 - __main__ - ERROR - Error processing image from https://raines.africa/product/apple-ipad-10-9-inch-wifi-64gb-blue/: URL does not point to an image: text/html; charset=UTF-8
+2025-04-13 08:59:31,919 - __main__ - ERROR - Error processing image URL: URL does not point to an image: text/html; charset=UTF-8
+2025-04-13 08:59:33,082 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:59:33] "POST /preview_images HTTP/1.1" 200 -
+2025-04-13 08:59:33,116 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:59:33] "GET /static/uploads/previews/preview_0.png?t=1744527573088 HTTP/1.1" 200 -
+2025-04-13 08:59:33,116 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:59:33] "GET /static/uploads/previews/preview_3.png?t=1744527573088 HTTP/1.1" 200 -
+2025-04-13 08:59:33,117 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:59:33] "GET /static/uploads/previews/preview_2.png?t=1744527573088 HTTP/1.1" 200 -
+2025-04-13 08:59:33,118 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:59:33] "GET /static/uploads/previews/preview_1.png?t=1744527573088 HTTP/1.1" 200 -
+2025-04-13 08:59:33,119 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 08:59:33] "GET /static/uploads/previews/preview_4.png?t=1744527573088 HTTP/1.1" 200 -
+2025-04-13 08:59:42,635 - __main__ - ERROR - Error processing image from https://raines.africa/product/apple-ipad-10-9-inch-wifi-64gb-blue/: URL does not point to an image: text/html; charset=UTF-8
+2025-04-13 08:59:42,635 - __main__ - ERROR - Error processing image URL: URL does not point to an image: text/html; charset=UTF-8
+2025-04-13 09:00:06,753 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:00:06] "POST /preview_images HTTP/1.1" 200 -
+2025-04-13 09:00:06,810 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:00:06] "GET /static/uploads/previews/preview_0.png?t=1744527606758 HTTP/1.1" 200 -
+2025-04-13 09:00:06,810 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:00:06] "GET /static/uploads/previews/preview_1.png?t=1744527606758 HTTP/1.1" 200 -
+2025-04-13 09:00:06,811 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:00:06] "GET /static/uploads/previews/preview_3.png?t=1744527606758 HTTP/1.1" 200 -
+2025-04-13 09:00:06,813 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:00:06] "GET /static/uploads/previews/preview_2.png?t=1744527606758 HTTP/1.1" 200 -
+2025-04-13 09:00:06,814 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:00:06] "GET /static/uploads/previews/preview_4.png?t=1744527606758 HTTP/1.1" 200 -
+2025-04-13 09:05:37,837 - werkzeug - INFO -  * Detected change in 'C:\\Users\\user\\Documents\\GitHub\\DATA MERGE 4\\app.py', reloading
+2025-04-13 09:05:38,034 - werkzeug - INFO -  * Restarting with stat
+2025-04-13 09:05:39,864 - werkzeug - WARNING -  * Debugger is active!
+2025-04-13 09:05:39,869 - werkzeug - INFO -  * Debugger PIN: 645-846-043
+2025-04-13 09:06:08,283 - werkzeug - INFO -  * Detected change in 'C:\\Users\\user\\Documents\\GitHub\\DATA MERGE 4\\app.py', reloading
+2025-04-13 09:06:08,406 - werkzeug - INFO -  * Restarting with stat
+2025-04-13 09:06:10,164 - werkzeug - WARNING -  * Debugger is active!
+2025-04-13 09:06:10,168 - werkzeug - INFO -  * Debugger PIN: 645-846-043
+2025-04-13 09:06:29,140 - werkzeug - INFO -  * Detected change in 'C:\\Users\\user\\Documents\\GitHub\\DATA MERGE 4\\app.py', reloading
+2025-04-13 09:06:29,278 - werkzeug - INFO -  * Restarting with stat
+2025-04-13 09:06:31,115 - werkzeug - WARNING -  * Debugger is active!
+2025-04-13 09:06:31,118 - werkzeug - INFO -  * Debugger PIN: 645-846-043
+2025-04-13 09:06:56,392 - werkzeug - INFO -  * Detected change in 'C:\\Users\\user\\Documents\\GitHub\\DATA MERGE 4\\app.py', reloading
+2025-04-13 09:06:56,516 - werkzeug - INFO -  * Restarting with stat
+2025-04-13 09:06:58,374 - werkzeug - WARNING -  * Debugger is active!
+2025-04-13 09:06:58,379 - werkzeug - INFO -  * Debugger PIN: 645-846-043
+2025-04-13 09:08:03,990 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.100.6:5000
+2025-04-13 09:08:03,991 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-04-13 09:08:03,993 - werkzeug - INFO -  * Restarting with stat
+2025-04-13 09:08:05,547 - werkzeug - WARNING -  * Debugger is active!
+2025-04-13 09:08:05,551 - werkzeug - INFO -  * Debugger PIN: 645-846-043
+2025-04-13 09:08:11,951 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:08:11] "GET / HTTP/1.1" 200 -
+2025-04-13 09:08:12,131 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:08:12] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+2025-04-13 09:08:12,135 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:08:12] "[36mGET /static/script.js HTTP/1.1[0m" 304 -
+2025-04-13 09:08:24,563 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:08:24] "POST /upload_template HTTP/1.1" 200 -
+2025-04-13 09:08:24,587 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:08:24] "GET /static/uploads/image.jpg HTTP/1.1" 200 -
+2025-04-13 09:08:30,905 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:08:30] "POST /upload_csv HTTP/1.1" 200 -
+2025-04-13 09:08:39,274 - __main__ - ERROR - Error processing image from https://raines.africa/product/apple-ipad-10-9-inch-wifi-64gb-blue/: URL does not point to an image: text/html; charset=UTF-8
+2025-04-13 09:08:39,275 - __main__ - ERROR - Error processing image URL: URL does not point to an image: text/html; charset=UTF-8
+2025-04-13 09:08:59,823 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:08:59] "POST /preview_images HTTP/1.1" 200 -
+2025-04-13 09:09:00,020 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:09:00] "GET /static/uploads/previews/preview_1.png?t=1744528139829 HTTP/1.1" 200 -
+2025-04-13 09:09:00,020 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:09:00] "GET /static/uploads/previews/preview_0.png?t=1744528139829 HTTP/1.1" 200 -
+2025-04-13 09:09:00,026 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:09:00] "GET /static/uploads/previews/preview_2.png?t=1744528139829 HTTP/1.1" 200 -
+2025-04-13 09:09:00,031 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:09:00] "GET /static/uploads/previews/preview_4.png?t=1744528139829 HTTP/1.1" 200 -
+2025-04-13 09:09:00,032 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:09:00] "GET /static/uploads/previews/preview_3.png?t=1744528139829 HTTP/1.1" 200 -
+2025-04-13 09:09:09,098 - __main__ - ERROR - Error processing image from https://raines.africa/product/apple-ipad-10-9-inch-wifi-64gb-blue/: URL does not point to an image: text/html; charset=UTF-8
+2025-04-13 09:09:09,099 - __main__ - ERROR - Error processing image URL: URL does not point to an image: text/html; charset=UTF-8
+2025-04-13 09:09:10,515 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:09:10] "POST /preview_images HTTP/1.1" 200 -
+2025-04-13 09:09:10,744 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:09:10] "GET /static/uploads/previews/preview_1.png?t=1744528150671 HTTP/1.1" 200 -
+2025-04-13 09:09:10,744 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:09:10] "GET /static/uploads/previews/preview_0.png?t=1744528150671 HTTP/1.1" 200 -
+2025-04-13 09:09:10,745 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:09:10] "GET /static/uploads/previews/preview_3.png?t=1744528150671 HTTP/1.1" 200 -
+2025-04-13 09:09:10,747 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:09:10] "GET /static/uploads/previews/preview_2.png?t=1744528150671 HTTP/1.1" 200 -
+2025-04-13 09:09:10,747 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:09:10] "GET /static/uploads/previews/preview_4.png?t=1744528150671 HTTP/1.1" 200 -
+2025-04-13 09:09:21,367 - __main__ - ERROR - Error processing image from https://raines.africa/product/apple-ipad-10-9-inch-wifi-64gb-blue/: URL does not point to an image: text/html; charset=UTF-8
+2025-04-13 09:09:21,368 - __main__ - ERROR - Error processing image URL: URL does not point to an image: text/html; charset=UTF-8
+2025-04-13 09:09:24,264 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:09:24] "POST /preview_images HTTP/1.1" 200 -
+2025-04-13 09:09:24,305 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:09:24] "GET /static/uploads/previews/preview_0.png?t=1744528164272 HTTP/1.1" 200 -
+2025-04-13 09:09:24,307 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:09:24] "GET /static/uploads/previews/preview_1.png?t=1744528164272 HTTP/1.1" 200 -
+2025-04-13 09:09:24,309 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:09:24] "GET /static/uploads/previews/preview_2.png?t=1744528164272 HTTP/1.1" 200 -
+2025-04-13 09:09:24,311 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:09:24] "GET /static/uploads/previews/preview_3.png?t=1744528164272 HTTP/1.1" 200 -
+2025-04-13 09:09:24,329 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:09:24] "GET /static/uploads/previews/preview_4.png?t=1744528164272 HTTP/1.1" 200 -
+2025-04-13 09:09:25,111 - __main__ - ERROR - Error processing image 2: type object 'ImageFont' has no attribute 'font_cache'
+2025-04-13 09:09:25,330 - __main__ - ERROR - Error processing image 3: type object 'ImageFont' has no attribute 'font_cache'
+2025-04-13 09:09:26,369 - __main__ - ERROR - Error processing image from https://raines.africa/product/apple-ipad-10-9-inch-wifi-64gb-blue/: URL does not point to an image: text/html; charset=UTF-8
+2025-04-13 09:09:26,370 - __main__ - ERROR - Error processing image URL: URL does not point to an image: text/html; charset=UTF-8
+2025-04-13 09:09:26,372 - __main__ - ERROR - Error processing image 4: type object 'ImageFont' has no attribute 'font_cache'
+2025-04-13 09:09:30,156 - __main__ - ERROR - Error processing image 0: type object 'ImageFont' has no attribute 'font_cache'
+2025-04-13 09:09:30,699 - __main__ - ERROR - Error processing image 1: type object 'ImageFont' has no attribute 'font_cache'
+2025-04-13 09:09:30,703 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:09:30] "[35m[1mPOST /preview_images HTTP/1.1[0m" 500 -
+2025-04-13 09:09:37,759 - __main__ - ERROR - Error processing image 2: type object 'ImageFont' has no attribute 'font_cache'
+2025-04-13 09:09:38,014 - __main__ - ERROR - Error processing image 3: type object 'ImageFont' has no attribute 'font_cache'
+2025-04-13 09:09:38,715 - __main__ - ERROR - Error processing image from https://raines.africa/product/apple-ipad-10-9-inch-wifi-64gb-blue/: URL does not point to an image: text/html; charset=UTF-8
+2025-04-13 09:09:38,715 - __main__ - ERROR - Error processing image URL: URL does not point to an image: text/html; charset=UTF-8
+2025-04-13 09:09:38,718 - __main__ - ERROR - Error processing image 4: type object 'ImageFont' has no attribute 'font_cache'
+2025-04-13 09:09:40,492 - __main__ - ERROR - Error processing image 0: type object 'ImageFont' has no attribute 'font_cache'
+2025-04-13 09:09:55,717 - __main__ - ERROR - Error processing image 1: type object 'ImageFont' has no attribute 'font_cache'
+2025-04-13 09:09:55,721 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:09:55] "[35m[1mPOST /preview_images HTTP/1.1[0m" 500 -
+2025-04-13 09:09:59,443 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:09:59] "GET / HTTP/1.1" 200 -
+2025-04-13 09:09:59,478 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:09:59] "GET /static/style.css HTTP/1.1" 200 -
+2025-04-13 09:09:59,479 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:09:59] "GET /static/script.js HTTP/1.1" 200 -
+2025-04-13 09:09:59,572 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:09:59] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-13 09:10:01,147 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:10:01] "POST /upload_template HTTP/1.1" 200 -
+2025-04-13 09:10:01,172 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:10:01] "GET /static/uploads/image.jpg HTTP/1.1" 200 -
+2025-04-13 09:10:02,009 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:10:02] "POST /upload_csv HTTP/1.1" 200 -
+2025-04-13 09:11:41,680 - werkzeug - INFO -  * Detected change in 'C:\\Users\\user\\Documents\\GitHub\\DATA MERGE 4\\app.py', reloading
+2025-04-13 09:11:41,855 - werkzeug - INFO -  * Restarting with stat
+2025-04-13 09:11:43,781 - werkzeug - WARNING -  * Debugger is active!
+2025-04-13 09:11:43,787 - werkzeug - INFO -  * Debugger PIN: 645-846-043
+2025-04-13 09:14:44,034 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:14:44] "GET / HTTP/1.1" 200 -
+2025-04-13 09:14:44,297 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:14:44] "GET /static/style.css HTTP/1.1" 200 -
+2025-04-13 09:14:44,298 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:14:44] "GET /static/script.js HTTP/1.1" 200 -
+2025-04-13 09:14:44,321 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:14:44] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-13 09:14:46,686 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:14:46] "POST /upload_template HTTP/1.1" 200 -
+2025-04-13 09:14:46,903 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:14:46] "GET /static/uploads/image.jpg HTTP/1.1" 200 -
+2025-04-13 09:14:47,953 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:14:47] "POST /upload_csv HTTP/1.1" 200 -
+2025-04-13 09:15:25,840 - werkzeug - INFO -  * Detected change in 'C:\\Users\\user\\Documents\\GitHub\\DATA MERGE 4\\app.py', reloading
+2025-04-13 09:15:25,995 - werkzeug - INFO -  * Restarting with stat
+2025-04-13 09:15:27,945 - werkzeug - WARNING -  * Debugger is active!
+2025-04-13 09:15:27,949 - werkzeug - INFO -  * Debugger PIN: 645-846-043
+2025-04-13 09:18:50,550 - werkzeug - INFO -  * Detected change in 'C:\\Users\\user\\Documents\\GitHub\\DATA MERGE 4\\app.py', reloading
+2025-04-13 09:18:50,673 - werkzeug - INFO -  * Restarting with stat
+2025-04-13 09:18:52,367 - werkzeug - WARNING -  * Debugger is active!
+2025-04-13 09:18:52,370 - werkzeug - INFO -  * Debugger PIN: 645-846-043
+2025-04-13 09:19:06,116 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:19:06] "GET / HTTP/1.1" 200 -
+2025-04-13 09:19:06,318 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:19:06] "GET /static/script.js HTTP/1.1" 200 -
+2025-04-13 09:19:06,319 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:19:06] "GET /static/style.css HTTP/1.1" 200 -
+2025-04-13 09:19:06,814 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:19:06] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-13 09:19:08,466 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:19:08] "POST /upload_template HTTP/1.1" 200 -
+2025-04-13 09:19:08,492 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:19:08] "GET /static/uploads/image.jpg HTTP/1.1" 200 -
+2025-04-13 09:19:09,688 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:19:09] "POST /upload_csv HTTP/1.1" 200 -
+2025-04-13 09:21:20,515 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:21:20] "GET / HTTP/1.1" 200 -
+2025-04-13 09:21:20,553 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:21:20] "GET /static/style.css HTTP/1.1" 200 -
+2025-04-13 09:21:20,554 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:21:20] "GET /static/script.js HTTP/1.1" 200 -
+2025-04-13 09:21:22,064 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:21:22] "POST /upload_template HTTP/1.1" 200 -
+2025-04-13 09:21:22,085 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:21:22] "GET /static/uploads/image.jpg HTTP/1.1" 200 -
+2025-04-13 09:21:23,617 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:21:23] "POST /upload_csv HTTP/1.1" 200 -
