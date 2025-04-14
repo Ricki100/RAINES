@@ -2,12 +2,31 @@ let csvData = [];
 let textBoxes = [];
 let selectedTextBox = null;
 
+// Add error handling function
+function displayError(message) {
+    alert(message);
+    console.error(message);
+    const statusDiv = document.getElementById('generationStatus');
+    if (statusDiv) {
+        statusDiv.textContent = message;
+        statusDiv.className = 'mt-3 text-danger';
+    }
+}
+
 // CSV Upload Handling
 document.getElementById('csvForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const file = document.getElementById('csv').files[0];
     if (!file) {
-        alert('Please select a CSV file to upload');
+        displayError('Please select a file to upload');
+        return;
+    }
+
+    // Validate file type
+    const validExtensions = ['.csv', '.xlsx', '.xls'];
+    const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+    if (!validExtensions.includes(fileExtension)) {
+        displayError('Please upload a CSV or Excel file');
         return;
     }
 
@@ -19,21 +38,18 @@ document.getElementById('csvForm').addEventListener('submit', async (e) => {
             method: 'POST',
             body: formData
         });
-        const data = await response.json();
         
-        if (response.ok) {
-            // Store all CSV data for processing
-            window.fullCsvData = data.all_data;
-            // Store preview data for display
-            csvData = data.preview;
-            window.totalRows = data.total_rows;
-            updateCsvPreview(data.columns, data.preview);
-            updateColumnSelect(data.columns);
-        } else {
-            alert('Error uploading CSV: ' + data.error);
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Upload failed');
         }
+        
+        const data = await response.json();
+        csvData = data.preview;
+        updateCsvPreview(data.columns, data.preview);
+        updateColumnSelect(data.columns);
     } catch (error) {
-        alert('Error uploading CSV: ' + error.message);
+        displayError(`Error uploading file: ${error.message}`);
     }
 });
 

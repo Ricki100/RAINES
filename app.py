@@ -70,7 +70,16 @@ def upload_csv():
         return jsonify({'error': 'No file selected'}), 400
     
     try:
-        df = pd.read_csv(file)
+        # Check file extension to determine if it's CSV or Excel
+        if file.filename.lower().endswith('.csv'):
+            # For CSV files, use encoding='utf-8-sig' to handle BOM and other encoding issues
+            df = pd.read_csv(file, encoding='utf-8-sig', on_bad_lines='skip')
+        elif file.filename.lower().endswith(('.xlsx', '.xls')):
+            # For Excel files
+            df = pd.read_excel(file)
+        else:
+            return jsonify({'error': 'Unsupported file format. Please upload a CSV or Excel file'}), 400
+        
         preview_rows = min(20, len(df))  # Show up to 20 rows in preview
         return jsonify({
             'columns': df.columns.tolist(),
@@ -79,7 +88,7 @@ def upload_csv():
             'total_rows': len(df)
         })
     except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        return jsonify({'error': f"Error reading file: {str(e)}"}), 400
 
 def wrap_text_to_width(draw, text, font, max_width):
     """Helper function to wrap text based on given width"""
@@ -572,6 +581,137 @@ def download_text_previews():
             
     except Exception as e:
         print(f"Error in download_text_previews: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# Add new routes for image-only functionality
+@app.route('/upload_image_template', methods=['POST'])
+def upload_image_template():
+    """Dedicated endpoint for uploading templates in the image-only tab"""
+    if 'template' not in request.files:
+        return jsonify({'error': 'No file uploaded'}), 400
+    
+    file = request.files['template']
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+    
+    filename = secure_filename(file.filename)
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file.save(filepath)
+    
+    # Return the URL for the uploaded image
+    image_url = url_for('static', filename=f'uploads/{filename}')
+    return jsonify({
+        'filename': filename,
+        'image_url': image_url,
+        'message': 'Template uploaded successfully'
+    })
+
+@app.route('/upload_image_csv', methods=['POST'])
+def upload_image_csv():
+    """Dedicated endpoint for uploading CSV in the image-only tab"""
+    if 'csv' not in request.files:
+        return jsonify({'error': 'No file uploaded'}), 400
+    
+    file = request.files['csv']
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+    
+    try:
+        # Check file extension to determine if it's CSV or Excel
+        if file.filename.lower().endswith('.csv'):
+            # For CSV files, use encoding='utf-8-sig' to handle BOM and other encoding issues
+            df = pd.read_csv(file, encoding='utf-8-sig', on_bad_lines='skip')
+        elif file.filename.lower().endswith(('.xlsx', '.xls')):
+            # For Excel files
+            df = pd.read_excel(file)
+        else:
+            return jsonify({'error': 'Unsupported file format. Please upload a CSV or Excel file'}), 400
+        
+        preview_rows = min(20, len(df))  # Show up to 20 rows in preview
+        return jsonify({
+            'columns': df.columns.tolist(),
+            'preview': df.head(preview_rows).to_dict('records'),
+            'all_data': df.to_dict('records'),  # Send all rows
+            'total_rows': len(df)
+        })
+    except Exception as e:
+        return jsonify({'error': f"Error reading file: {str(e)}"}), 400
+
+# Add a hybrid route for the combined generator
+@app.route('/preview_combined_images', methods=['POST'])
+def preview_combined_images():
+    """Process both text and image boxes in a single template"""
+    data = request.get_json()
+    
+    if not data:
+        return jsonify({'error': 'No data received'}), 400
+    
+    template_filename = data.get('template')
+    csv_data = data.get('csv_data', [])
+    boxes = data.get('text_boxes', [])
+    
+    if not template_filename or not csv_data or not boxes:
+        return jsonify({'error': 'Missing required parameters'}), 400
+    
+    try:
+        template_path = os.path.join(app.config['UPLOAD_FOLDER'], template_filename)
+        if not os.path.exists(template_path):
+            return jsonify({'error': f'Template file not found: {template_filename}'}), 404
+        
+        template_img = Image.open(template_path)
+        
+        # Generate preview images
+        preview_urls = []
+        max_previews = min(5, len(csv_data))  # Limit preview generation
+        
+        for idx, row in enumerate(csv_data[:max_previews]):
+            # Create a copy of template for each row
+            img = template_img.copy()
+            draw = ImageDraw.Draw(img)
+            
+            # Process each box (can be text or image)
+            for box in boxes:
+                column = box.get('column')
+                
+                if column not in row:
+                    continue
+                
+                x = float(box.get('x', 0))
+                y = float(box.get('y', 0))
+                width = float(box.get('width', 100))
+                height = float(box.get('height', 100))
+                
+                # Check if it's an image box
+                if box.get('isImage', False):
+                    if row[column]:  # Only process if URL is provided
+                        try:
+                            draw_image_box(draw, box, row[column], img.width, img.height)
+                        except Exception as e:
+                            print(f"Error drawing image from {row[column]}: {str(e)}")
+                            # Draw error box
+                            draw.rectangle([x, y, x + width, y + height], outline='red', width=2)
+                            draw.text((x + 5, y + 5), f"Image Error: {str(e)[:30]}...", fill='red')
+                else:
+                    # It's a text box
+                    if row[column]:  # Only draw if text is provided
+                        draw_text_box(draw, box, row[column], img.width, img.height)
+            
+            # Save preview image
+            preview_filename = f'preview_{idx}_{int(datetime.now().timestamp())}.png'
+            preview_path = os.path.join('static', 'previews', preview_filename)
+            img.save(preview_path)
+            
+            # Add URL to list
+            preview_url = url_for('static', filename=f'previews/{preview_filename}')
+            preview_urls.append(preview_url)
+        
+        return jsonify({
+            'preview_urls': preview_urls,
+            'message': f'Generated {len(preview_urls)} preview images'
+        })
+        
+    except Exception as e:
+        print(f"Error generating preview: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
