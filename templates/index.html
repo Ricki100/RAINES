@@ -448,6 +448,26 @@
                                             <span class="visually-hidden">Next</span>
                                         </button>
                                     </div>
+
+                                    <!-- Single image preview with navigation -->
+                                    <div id="combinedPreviewContainer" class="d-none mt-2">
+                                        <div class="text-center mb-2 preview-image-container">
+                                            <img id="combinedSinglePreview" class="img-fluid" style="border: 1px solid #ddd;" alt="Preview">
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <button id="prevImageBtn" class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-chevron-left"></i> Previous
+                                            </button>
+                                            <div class="d-flex align-items-center">
+                                                <span>Record</span>
+                                                <input type="number" id="currentImageInput" class="form-control form-control-sm mx-2" style="width: 70px;" min="1" value="1">
+                                                <span>of <span id="totalImagesCount">0</span></span>
+                                            </div>
+                                            <button id="nextImageBtn" class="btn btn-sm btn-outline-primary">
+                                                Next <i class="bi bi-chevron-right"></i>
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

@@ -662,7 +662,7 @@ def preview_combined_images():
         
         # Generate preview images
         preview_urls = []
-        max_previews = min(5, len(csv_data))  # Limit preview generation
+        max_previews = min(len(csv_data), 5) if 'preview_mode' in data else len(csv_data)
         
         for idx, row in enumerate(csv_data[:max_previews]):
             # Create a copy of template for each row
@@ -683,18 +683,75 @@ def preview_combined_images():
                 
                 # Check if it's an image box
                 if box.get('isImage', False):
-                    if row[column]:  # Only process if URL is provided
+                    image_url = row[column]
+                    if image_url:  # Only process if URL is provided
                         try:
-                            draw_image_box(draw, box, row[column], img.width, img.height)
+                            # For image boxes, use the dedicated function
+                            response = requests.get(image_url, timeout=5)
+                            if response.status_code == 200:
+                                overlay_img = Image.open(BytesIO(response.content))
+                                
+                                # Calculate dimensions while maintaining aspect ratio
+                                overlay_width, overlay_height = overlay_img.size
+                                scale = min(width/overlay_width, height/overlay_height)
+                                new_width = int(overlay_width * scale)
+                                new_height = int(overlay_height * scale)
+                                
+                                # Resize the overlay image
+                                overlay_img = overlay_img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                                
+                                # Calculate position to center the image in the box
+                                paste_x = int(x + (width - new_width) / 2)
+                                paste_y = int(y + (height - new_height) / 2)
+                                
+                                # Paste the image
+                                if overlay_img.mode == 'RGBA':
+                                    img.paste(overlay_img, (paste_x, paste_y), overlay_img)
+                                else:
+                                    img.paste(overlay_img, (paste_x, paste_y))
+                            else:
+                                # Draw error indication
+                                draw.rectangle([(x, y), (x + width, y + height)], outline='red', width=2)
+                                draw.text((x + 5, y + height/2), "Image Error", fill='red', font=ImageFont.truetype(DEFAULT_FONT, 12))
                         except Exception as e:
-                            print(f"Error drawing image from {row[column]}: {str(e)}")
+                            print(f"Error drawing image from {image_url}: {str(e)}")
                             # Draw error box
-                            draw.rectangle([x, y, x + width, y + height], outline='red', width=2)
-                            draw.text((x + 5, y + 5), f"Image Error: {str(e)[:30]}...", fill='red')
+                            draw.rectangle([(x, y), (x + width, y + height)], outline='red', width=2)
+                            draw.text((x + 5, y + 5), f"Error: {str(e)[:30]}...", fill='red', font=ImageFont.truetype(DEFAULT_FONT, 12))
                 else:
                     # It's a text box
                     if row[column]:  # Only draw if text is provided
-                        draw_text_box(draw, box, row[column], img.width, img.height)
+                        # Handle text styling
+                        font_size = int(box.get('fontSize', 24))
+                        font_family = box.get('fontFamily', 'Arial')
+                        # Convert hex to RGB color
+                        color_hex = box.get('color', '#000000')
+                        if not color_hex.startswith('#'):
+                            color_hex = '#000000'
+                        color = tuple(int(color_hex.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
+                        
+                        # Handle text styling
+                        bold = box.get('bold', False)
+                        italic = box.get('italic', False)
+                        underline = box.get('underline', False)
+                        align = box.get('align', 'left')
+                        
+                        # Create a modified box with all required parameters for draw_text_box
+                        text_box = {
+                            'x': x,
+                            'y': y,
+                            'width': width,
+                            'height': height,
+                            'fontSize': font_size,
+                            'fontFamily': font_family,
+                            'color': color_hex,
+                            'bold': str(bold).lower(),
+                            'italic': str(italic).lower(),
+                            'underline': str(underline).lower(),
+                            'align': align
+                        }
+                        
+                        draw_text_box(draw, text_box, row[column], img.width, img.height)
             
             # Save preview image
             preview_filename = f'preview_{idx}_{int(datetime.now().timestamp())}.png'
@@ -713,6 +770,69 @@ def preview_combined_images():
     except Exception as e:
         print(f"Error generating preview: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/download_individual', methods=['POST'])
+def download_individual():
+    """Download individual preview images"""
+    data = request.get_json()
+    
+    if not data or 'preview_urls' not in data:
+        return jsonify({'error': 'No preview URLs provided'}), 400
+    
+    preview_urls = data.get('preview_urls', [])
+    if not preview_urls:
+        return jsonify({'error': 'Empty preview URLs list'}), 400
+    
+    try:
+        # Create a directory to store the images
+        timestamp = int(datetime.now().timestamp())
+        download_dir = os.path.join('static', 'downloads', f'batch_{timestamp}')
+        os.makedirs(download_dir, exist_ok=True)
+        
+        # Copy each preview image to the download directory
+        file_paths = []
+        for idx, url in enumerate(preview_urls):
+            # Extract filename from URL
+            filename = os.path.basename(url.split('?')[0])
+            src_path = os.path.join('static', 'previews', filename)
+            
+            # Create a more user-friendly filename
+            dst_filename = f'image_{idx+1}.png'
+            dst_path = os.path.join(download_dir, dst_filename)
+            
+            # Copy the file
+            shutil.copy2(src_path, dst_path)
+            file_paths.append(dst_path)
+        
+        # Return the download directory information
+        return jsonify({
+            'download_dir': download_dir,
+            'file_count': len(file_paths),
+            'timestamp': timestamp
+        })
+        
+    except Exception as e:
+        print(f"Error preparing downloads: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/download_batch/<int:timestamp>')
+def download_batch(timestamp):
+    """Serve a single image for download"""
+    download_dir = os.path.join('static', 'downloads', f'batch_{timestamp}')
+    
+    if not os.path.exists(download_dir):
+        return "Download batch not found", 404
+    
+    # Create a zip file from the directory
+    zip_filename = f'images_{timestamp}.zip'
+    zip_path = os.path.join('static', 'downloads', zip_filename)
+    
+    with zipfile.ZipFile(zip_path, 'w') as zipf:
+        for root, dirs, files in os.walk(download_dir):
+            for file in files:
+                zipf.write(os.path.join(root, file), arcname=file)
+    
+    return send_file(zip_path, as_attachment=True, download_name=zip_filename)
 
 if __name__ == '__main__':
     app.run(debug=True) 

@@ -77,6 +77,20 @@ document.addEventListener('DOMContentLoaded', () => {
             cursor: pointer;
             z-index: 10;
         }
+        
+        .preview-image-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        
+        #combinedSinglePreview {
+            max-width: 100%;
+            object-fit: contain;
+        }
     `;
     document.head.appendChild(style);
 
@@ -191,6 +205,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         container.style.width = width + 'px';
                         container.style.height = height + 'px';
                     }
+                    
+                    // Store the canvas dimensions to use for preview
+                    window.templateDimensions = { width, height };
                 } catch (error) {
                     displayStatus('Error processing image: ' + error.message, true);
                 }
@@ -724,7 +741,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // Add specific properties based on box type
                 if (boxType === 'text') {
-                    config.size = parseInt(box.dataset.fontSize) * scaleX; // Scale font size
+                    config.fontSize = parseInt(box.dataset.fontSize) * scaleX; // Scale font size
                     config.color = box.dataset.color;
                     config.fontFamily = box.dataset.fontFamily;
                     config.bold = box.dataset.bold === 'true';
@@ -740,6 +757,9 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const formattedCsvData = window.fullCsvData || csvData;
             
+            // For faster preview generation, only request the first row's preview initially
+            const firstRowData = [formattedCsvData[0]];
+            
             const response = await fetch('/preview_combined_images', {
                 method: 'POST',
                 headers: {
@@ -747,56 +767,58 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 body: JSON.stringify({
                     template: currentTemplate,
-                    csv_data: formattedCsvData,
+                    csv_data: firstRowData,
                     text_boxes: boxConfigs
                 })
             });
             
             const data = await response.json();
             if (response.ok) {
+                // Store all CSV data for on-demand preview generation
+                window.allCsvData = formattedCsvData;
+                window.previewBoxConfigs = boxConfigs;
+                window.currentTemplateFile = currentTemplate;
+                
+                // Store first preview URL and show it
                 window.previewUrls = data.preview_urls;
+                window.currentPreviewIndex = 0;
+                window.totalRecords = formattedCsvData.length;
                 
-                // Update carousel
+                // Hide the carousel and show the single preview container
                 const carousel = document.getElementById('combinedPreviewCarousel');
-                const carouselInner = carousel.querySelector('.carousel-inner');
-                const indicators = carousel.querySelector('.carousel-indicators');
+                carousel.classList.add('d-none');
                 
-                carouselInner.innerHTML = '';
-                indicators.innerHTML = '';
+                const previewContainer = document.getElementById('combinedPreviewContainer');
+                previewContainer.classList.remove('d-none');
                 
-                carouselInner.innerHTML = data.preview_urls.map((url, index) => `
-                    <div class="carousel-item ${index === 0 ? 'active' : ''}">
-                        <img src="${url}" class="d-block w-100" alt="Preview ${index + 1}">
-                        <div class="carousel-caption d-none d-md-block">
-                            <h5>Preview ${index + 1} of ${data.preview_urls.length}</h5>
-                        </div>
-                    </div>
-                `).join('');
+                // Update the preview image
+                const singlePreview = document.getElementById('combinedSinglePreview');
+                singlePreview.src = data.preview_urls[0];
                 
-                indicators.innerHTML = data.preview_urls.map((_, index) => `
-                    <button type="button" 
-                        data-bs-target="#combinedPreviewCarousel" 
-                        data-bs-slide-to="${index}"
-                        ${index === 0 ? 'class="active" aria-current="true"' : ''}
-                        aria-label="Slide ${index + 1}">
-                    </button>
-                `).join('');
-                
-                // Show carousel
-                carousel.classList.remove('d-none');
-                
-                // Initialize or refresh the carousel
-                const carouselInstance = bootstrap.Carousel.getInstance(carousel);
-                if (carouselInstance) {
-                    carouselInstance.dispose();
+                // Set preview image dimensions to match template
+                if (window.templateDimensions) {
+                    singlePreview.style.width = window.templateDimensions.width + 'px';
+                    singlePreview.style.height = window.templateDimensions.height + 'px';
+                    singlePreview.style.objectFit = 'contain';
+                    
+                    // Make the preview container match template aspect ratio
+                    const previewImageContainer = previewContainer.querySelector('.preview-image-container');
+                    if (previewImageContainer) {
+                        previewImageContainer.style.width = window.templateDimensions.width + 'px';
+                        previewImageContainer.style.margin = '0 auto';
+                    }
                 }
-                new bootstrap.Carousel(carousel);
                 
-                // Enable download button
+                // Update the counter
+                document.getElementById('totalImagesCount').textContent = formattedCsvData.length;
+                document.getElementById('currentImageInput').value = 1;
+                document.getElementById('currentImageInput').max = formattedCsvData.length;
+                
+                // Enable the download button
                 const downloadBtn = document.getElementById('combinedDownloadBtn');
                 downloadBtn.disabled = false;
                 
-                displayStatus('Previews generated successfully!');
+                displayStatus(`Preview generated. Total records: ${formattedCsvData.length}`);
             } else {
                 throw new Error(data.error);
             }
@@ -807,11 +829,109 @@ document.addEventListener('DOMContentLoaded', () => {
             previewBtn.disabled = false;
         }
     });
+    
+    // Navigation between previews
+    document.getElementById('prevImageBtn').addEventListener('click', () => {
+        navigatePreview(-1);
+    });
+    
+    document.getElementById('nextImageBtn').addEventListener('click', () => {
+        navigatePreview(1);
+    });
+    
+    document.getElementById('currentImageInput').addEventListener('change', async function() {
+        const recordNumber = parseInt(this.value);
+        if (isNaN(recordNumber) || recordNumber < 1 || recordNumber > window.totalRecords) {
+            this.value = window.currentPreviewIndex + 1;
+            return;
+        }
+        
+        await loadPreviewForRecord(recordNumber - 1);
+    });
+    
+    async function navigatePreview(direction) {
+        const newIndex = window.currentPreviewIndex + direction;
+        if (newIndex < 0 || newIndex >= window.totalRecords) {
+            return;
+        }
+        
+        await loadPreviewForRecord(newIndex);
+    }
+    
+    async function loadPreviewForRecord(index) {
+        // If we already have this preview, just show it
+        if (window.previewUrls[index]) {
+            const singlePreview = document.getElementById('combinedSinglePreview');
+            singlePreview.src = window.previewUrls[index];
+            
+            // Set preview image dimensions to match template
+            if (window.templateDimensions) {
+                singlePreview.style.width = window.templateDimensions.width + 'px';
+                singlePreview.style.height = window.templateDimensions.height + 'px';
+                singlePreview.style.objectFit = 'contain';
+            }
+            
+            window.currentPreviewIndex = index;
+            document.getElementById('currentImageInput').value = index + 1;
+            return;
+        }
+        
+        // Otherwise, generate it
+        const statusDiv = document.getElementById('combinedStatus');
+        const originalStatus = statusDiv.textContent;
+        statusDiv.textContent = `Generating preview for record ${index + 1}...`;
+        
+        try {
+            // Generate preview for the requested record
+            const recordData = [window.allCsvData[index]];
+            
+            const response = await fetch('/preview_combined_images', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    template: window.currentTemplateFile,
+                    csv_data: recordData,
+                    text_boxes: window.previewBoxConfigs
+                })
+            });
+            
+            const data = await response.json();
+            if (response.ok) {
+                // Store the preview URL
+                window.previewUrls[index] = data.preview_urls[0];
+                
+                // Update the preview image
+                const singlePreview = document.getElementById('combinedSinglePreview');
+                singlePreview.src = data.preview_urls[0];
+                
+                // Set preview image dimensions to match template
+                if (window.templateDimensions) {
+                    singlePreview.style.width = window.templateDimensions.width + 'px';
+                    singlePreview.style.height = window.templateDimensions.height + 'px';
+                    singlePreview.style.objectFit = 'contain';
+                }
+                
+                window.currentPreviewIndex = index;
+                document.getElementById('currentImageInput').value = index + 1;
+                
+                statusDiv.textContent = `Showing record ${index + 1} of ${window.totalRecords}`;
+            } else {
+                throw new Error(data.error);
+            }
+        } catch (error) {
+            console.error('Error generating preview:', error);
+            statusDiv.textContent = 'Error generating preview: ' + error.message;
+            // Restore the previous value
+            document.getElementById('currentImageInput').value = window.currentPreviewIndex + 1;
+        }
+    }
 
     // Download Images
     document.getElementById('combinedDownloadBtn').addEventListener('click', async () => {
-        if (!window.previewUrls || window.previewUrls.length === 0) {
-            displayStatus('No preview images available to download', true);
+        if (!window.currentTemplateFile || !window.allCsvData || !window.previewBoxConfigs) {
+            displayStatus('No preview data available to download', true);
             return;
         }
 
@@ -820,33 +940,52 @@ document.addEventListener('DOMContentLoaded', () => {
             const originalText = downloadBtn.textContent;
             downloadBtn.textContent = 'Preparing Download...';
             downloadBtn.disabled = true;
+            displayStatus('Generating all images for download. This may take a moment...');
 
-            const response = await fetch('/download_previews', {
+            // Generate all previews
+            const response = await fetch('/preview_combined_images', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    preview_urls: window.previewUrls
+                    template: window.currentTemplateFile,
+                    csv_data: window.allCsvData,
+                    text_boxes: window.previewBoxConfigs
                 })
             });
 
-            if (response.ok) {
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'combined_previews.zip';
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                a.remove();
-                
-                displayStatus('Images downloaded successfully!');
-            } else {
+            if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to download preview images');
+                throw new Error(errorData.error || 'Failed to generate preview images');
             }
+
+            const data = await response.json();
+            
+            displayStatus(`Generated ${data.preview_urls.length} images. Preparing download...`);
+            
+            // Prepare images for individual download
+            const prepareResponse = await fetch('/download_individual', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    preview_urls: data.preview_urls
+                })
+            });
+
+            if (!prepareResponse.ok) {
+                const errorData = await prepareResponse.json();
+                throw new Error(errorData.error || 'Failed to prepare images for download');
+            }
+
+            const downloadData = await prepareResponse.json();
+            
+            // Initiate direct download of the prepared zip file
+            window.location.href = `/download_batch/${downloadData.timestamp}`;
+            
+            displayStatus(`Download initiated for ${downloadData.file_count} images.`);
         } catch (error) {
             displayStatus('Error downloading preview images: ' + error.message, true);
         } finally {
