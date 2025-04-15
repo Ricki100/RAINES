@@ -146,6 +146,14 @@ def draw_text_box(draw, box, text, img_width, img_height):
             
         # Get font family and style
         font_family = box.get('fontFamily', 'Arial')
+        font_path = os.path.join(FONTS_DIR, f'{font_family}.ttf')
+        
+        # Check if the font file exists, otherwise use default
+        if not os.path.exists(font_path):
+            font_path = DEFAULT_FONT
+        
+        # Load the font
+        font = ImageFont.truetype(font_path, font_size)
         
         # Convert string 'true'/'false' to boolean
         def str_to_bool(val):
@@ -158,7 +166,6 @@ def draw_text_box(draw, box, text, img_width, img_height):
         underline = str_to_bool(box.get('underline', False))
         
         # Get the font and apply stroke for bold simulation if needed
-        font = ImageFont.truetype(DEFAULT_FONT, font_size)
         stroke_width = 0
         if bold:
             stroke_width = max(1, font_size // 30)  # Scale stroke width with font size
