@@ -195,7 +195,7 @@ def draw_text_box(draw, box, text, img_width, img_height):
         # Calculate line height and total text height
         line_spacing = font_size * 1.2
         total_height = len(lines) * line_spacing
-
+        
         # Draw each line with proper alignment
         current_y = y # Start drawing directly from the box's top y
         for line in lines:
@@ -627,6 +627,6 @@ def update_download_progress(percent, status="processing"):
 
 if __name__ == '__main__':
     # For development
-    app.run(debug=True)
+    app.run(debug=True) 
     # For production on Hostinger
     # app.run(host='0.0.0.0', port=5000) 
