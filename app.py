@@ -39,6 +39,10 @@ DEFAULT_FONT = os.path.join(FONTS_DIR, 'arial.ttf')
 # Ensure fonts directory exists
 os.makedirs(FONTS_DIR, exist_ok=True)
 
+# Global variables to track progress
+preview_progress = {"percent": 0, "status": "idle"}
+download_progress = {"percent": 0, "status": "idle"}
+
 def get_font_path(font_name, bold=False, italic=False):
     """Get the appropriate font file path based on name and style."""
     # Since we only have arial.ttf, we'll use it and simulate bold/italic
@@ -653,9 +657,14 @@ def upload_image_csv():
 @app.route('/preview_combined_images', methods=['POST'])
 def preview_combined_images():
     """Process both text and image boxes in a single template"""
+    global preview_progress
+    reset_preview_progress()
+    update_preview_progress(5, "starting")
+    
     data = request.get_json()
     
     if not data:
+        reset_preview_progress()
         return jsonify({'error': 'No data received'}), 400
     
     template_filename = data.get('template')
@@ -663,29 +672,41 @@ def preview_combined_images():
     boxes = data.get('text_boxes', [])
     
     if not template_filename or not csv_data or not boxes:
+        reset_preview_progress()
         return jsonify({'error': 'Missing required parameters'}), 400
     
     try:
         template_path = os.path.join(app.config['UPLOAD_FOLDER'], template_filename)
         if not os.path.exists(template_path):
+            reset_preview_progress()
             return jsonify({'error': f'Template file not found: {template_filename}'}), 404
+        
+        update_preview_progress(10, "preparing")
         
         preview_dir = os.path.join('static', 'previews')
         os.makedirs(preview_dir, exist_ok=True)
-        # --- Start: Clear previous previews ---
-        print(f"Clearing previous previews in: {preview_dir}")
+        # Clear previous previews
         clear_directory(preview_dir, pattern="preview_*.png")
-        # --- End: Clear previous previews ---
         
+        update_preview_progress(15, "loading template")
         template_img = Image.open(template_path)
         
         # Generate preview images
         preview_urls = []
-        max_previews = min(len(csv_data), 5) if 'preview_mode' in data else len(csv_data)
+        max_previews = min(len(csv_data), 10) if len(csv_data) > 10 else len(csv_data)
+        
+        update_preview_progress(20, "generating previews")
         
         for idx, row in enumerate(csv_data[:max_previews]):
+            # Calculate progress - spread from 20% to 90%
+            current_progress = 20 + (70 * (idx / max(1, max_previews - 1)))
+            update_preview_progress(current_progress, f"generating image {idx+1}/{max_previews}")
+            
             # Create a copy of template for each row
             img = template_img.copy()
+            # Ensure image is in RGB or RGBA mode for consistent processing
+            if img.mode not in ('RGB', 'RGBA'):
+                img = img.convert('RGBA')
             draw = ImageDraw.Draw(img)
             
             # Process each box (can be text or image)
@@ -693,6 +714,7 @@ def preview_combined_images():
                 column = box.get('column')
                 
                 if column not in row:
+                    print(f"Warning: Column '{column}' not found in CSV row {idx}")
                     continue
                 
                 x = float(box.get('x', 0))
@@ -706,33 +728,27 @@ def preview_combined_images():
                     if image_url:  # Only process if URL is provided
                         try:
                             # For image boxes, use the dedicated function
-                            response = requests.get(image_url, timeout=5)
-                            if response.status_code == 200:
-                                overlay_img = Image.open(BytesIO(response.content))
-                                
-                                # Calculate dimensions while maintaining aspect ratio
-                                overlay_width, overlay_height = overlay_img.size
-                                scale = min(width/overlay_width, height/overlay_height)
-                                new_width = int(overlay_width * scale)
-                                new_height = int(overlay_height * scale)
-                                
-                                # Resize the overlay image
-                                overlay_img = overlay_img.resize((new_width, new_height), Image.Resampling.LANCZOS)
-                                
-                                # Position image at exact box coordinates - no centering adjustment
-                                # This ensures the image appears exactly where the box is placed
-                                paste_x = int(x)
-                                paste_y = int(y)
-                                
-                                # Paste the image
-                                if overlay_img.mode == 'RGBA':
-                                    img.paste(overlay_img, (paste_x, paste_y), overlay_img)
-                                else:
-                                    img.paste(overlay_img, (paste_x, paste_y))
+                            result = draw_image_box(draw, box, image_url, img.width, img.height)
+                            if result:
+                                if len(result) == 3: # If mask is returned
+                                    overlay, pos, mask = result
+                                    # Ensure overlay is RGBA before pasting with mask
+                                    if overlay.mode != 'RGBA':
+                                        overlay = overlay.convert('RGBA')
+                                    # Paste using the mask
+                                    img.paste(overlay, pos, mask)
+                                else: # No mask
+                                    overlay, pos = result
+                                    # Ensure overlay is compatible with base image mode
+                                    if img.mode == 'RGBA' and overlay.mode != 'RGBA':
+                                        overlay = overlay.convert('RGBA')
+                                    elif img.mode == 'RGB' and overlay.mode != 'RGB':
+                                        overlay = overlay.convert('RGB')
+                                    img.paste(overlay, pos)
                             else:
                                 # Draw error indication
                                 draw.rectangle([(x, y), (x + width, y + height)], outline='red', width=2)
-                                draw.text((x + 5, y + height/2), "Image Error", fill='red', font=ImageFont.truetype(DEFAULT_FONT, 12))
+                                draw.text((x + 5, y + 5), "Image Error", fill='red', font=ImageFont.truetype(DEFAULT_FONT, 12))
                         except Exception as e:
                             print(f"Error drawing image from {image_url}: {str(e)}")
                             # Draw error box
@@ -774,15 +790,17 @@ def preview_combined_images():
                         draw_text_box(draw, text_box, row[column], img.width, img.height)
             
             # Save preview image
-            # Use a more unique naming scheme to avoid collisions if needed
             preview_filename = f'preview_{idx}_{int(datetime.now().timestamp() * 1000)}.png'
-            preview_path = os.path.join(preview_dir, preview_filename)
+            preview_path = os.path.join('static', 'previews', preview_filename)
             img.save(preview_path)
             
             # Add URL to list
-            # Add a cache-busting query parameter
             preview_url = url_for('static', filename=f'previews/{preview_filename}', _external=False) + f"?v={int(datetime.now().timestamp())}"
             preview_urls.append(preview_url)
+        
+        update_preview_progress(95, "finalizing")
+        time.sleep(0.5)  # Short delay to ensure frontend gets final progress update
+        update_preview_progress(100, "complete")
         
         return jsonify({
             'preview_urls': preview_urls,
@@ -791,6 +809,7 @@ def preview_combined_images():
         
     except Exception as e:
         print(f"Error generating preview: {str(e)}")
+        reset_preview_progress()
         return jsonify({'error': str(e)}), 500
 
 def generate_unique_id(length=8):
@@ -801,13 +820,19 @@ def generate_unique_id(length=8):
 @app.route('/download_individual', methods=['POST'])
 def download_individual():
     """Download individual preview images"""
+    global download_progress
+    reset_download_progress()
+    update_download_progress(5, "starting")
+    
     data = request.get_json()
     
     if not data or 'preview_urls' not in data:
+        reset_download_progress()
         return jsonify({'error': 'No preview URLs provided'}), 400
     
     preview_urls = data.get('preview_urls', [])
     if not preview_urls:
+        reset_download_progress()
         return jsonify({'error': 'Empty preview URLs list'}), 400
     
     try:
@@ -817,9 +842,17 @@ def download_individual():
         download_dir = os.path.join('static', 'downloads', f'batch_{timestamp}_{unique_id}')
         os.makedirs(download_dir, exist_ok=True)
         
+        update_download_progress(15, "preparing files")
+        
         # Copy each preview image to the download directory
         file_paths = []
+        total_urls = len(preview_urls)
+        
         for idx, url in enumerate(preview_urls):
+            # Calculate progress - spread from 15% to 85%
+            current_progress = 15 + (70 * (idx / max(1, total_urls - 1)))
+            update_download_progress(current_progress, f"preparing file {idx+1}/{total_urls}")
+            
             # Extract filename from URL
             filename = os.path.basename(url.split('?')[0])
             src_path = os.path.join('static', 'previews', filename)
@@ -832,6 +865,10 @@ def download_individual():
             shutil.copy2(src_path, dst_path)
             file_paths.append(dst_path)
         
+        update_download_progress(90, "finalizing")
+        time.sleep(0.5)  # Short delay to ensure frontend gets final progress update
+        update_download_progress(100, "complete")
+        
         # Return the download directory information
         return jsonify({
             'download_dir': download_dir,
@@ -842,6 +879,7 @@ def download_individual():
         
     except Exception as e:
         print(f"Error preparing downloads: {str(e)}")
+        reset_download_progress()
         return jsonify({'error': str(e)}), 500
 
 def delayed_file_cleanup(zip_path, download_dir, delay=30):
@@ -915,6 +953,43 @@ def clear_directory(directory_path, pattern="*.png"):
             print(f"Removed old file: {f}")
         except OSError as e:
             print(f"Error removing file {f}: {e.strerror}")
+
+# Progress tracking routes
+@app.route('/preview_progress')
+def get_preview_progress():
+    """Return the current preview generation progress"""
+    return jsonify(preview_progress)
+
+@app.route('/download_progress')
+def get_download_progress():
+    """Return the current download preparation progress"""
+    return jsonify(download_progress)
+
+# Reset preview progress
+def reset_preview_progress():
+    """Reset the preview progress to initial state"""
+    global preview_progress
+    preview_progress = {"percent": 0, "status": "idle"}
+
+# Reset download progress
+def reset_download_progress():
+    """Reset the download progress to initial state"""
+    global download_progress
+    download_progress = {"percent": 0, "status": "idle"}
+
+# Update preview progress
+def update_preview_progress(percent, status="processing"):
+    """Update the preview progress"""
+    global preview_progress
+    preview_progress["percent"] = percent
+    preview_progress["status"] = status
+
+# Update download progress
+def update_download_progress(percent, status="processing"):
+    """Update the download progress"""
+    global download_progress
+    download_progress["percent"] = percent
+    download_progress["status"] = status
 
 if __name__ == '__main__':
     # For development

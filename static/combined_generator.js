@@ -91,6 +91,56 @@ document.addEventListener('DOMContentLoaded', () => {
             max-width: 100%;
             object-fit: contain;
         }
+        
+        .progress-container {
+            margin: 10px 0;
+            background-color: #f1f1f1;
+            border-radius: 8px;
+            height: 20px;
+            position: relative;
+            overflow: hidden;
+            display: none;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background-color: #4CAF50;
+            width: 0%;
+            transition: width 0.3s ease;
+            text-align: center;
+            line-height: 20px;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        /* Add indeterminate progress animation */
+        @keyframes progress-animation {
+            0% { width: 0%; background-color: #4CAF50; }
+            20% { width: 20%; background-color: #4CAF50; }
+            40% { width: 40%; background-color: #78c379; }
+            60% { width: 60%; background-color: #8FBC8F; }
+            80% { width: 80%; background-color: #78c379; }
+            100% { width: 0%; background-color: #4CAF50; }
+        }
+        
+        .progress-bar.indeterminate {
+            width: 100%;
+            background: linear-gradient(to right, #4CAF50, #8FBC8F, #4CAF50);
+            background-size: 200% 100%;
+            animation: progress-animation 2s infinite;
+        }
+        
+        .progress-text {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #333;
+            font-size: 12px;
+        }
     `;
     document.head.appendChild(style);
 
@@ -109,6 +159,72 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isError) {
             console.error(message);
             alert(message);
+        }
+    }
+
+    // Progress bar functions
+    function showProgressBar(containerId = 'combinedProgressContainer', indeterminate = true) {
+        const container = document.getElementById(containerId);
+        if (container) {
+            container.style.display = 'block';
+            const bar = container.querySelector('.progress-bar');
+            const text = container.querySelector('.progress-text');
+            
+            if (indeterminate) {
+                // Start with indeterminate animation
+                if (bar) {
+                    bar.classList.add('indeterminate');
+                    bar.style.width = '100%';
+                }
+                if (text) {
+                    text.textContent = 'Processing...';
+                }
+            } else {
+                // Or start with 0% if not indeterminate
+                updateProgress(0, containerId);
+            }
+        }
+    }
+
+    function hideProgressBar(containerId = 'combinedProgressContainer') {
+        const container = document.getElementById(containerId);
+        if (container) {
+            container.style.display = 'none';
+        }
+    }
+
+    function updateProgress(percent, containerId = 'combinedProgressContainer') {
+        const container = document.getElementById(containerId);
+        if (container) {
+            const bar = container.querySelector('.progress-bar');
+            const text = container.querySelector('.progress-text');
+            
+            // If we have a real percentage now, remove indeterminate styling
+            if (percent > 0 && bar && bar.classList.contains('indeterminate')) {
+                bar.classList.remove('indeterminate');
+            }
+            
+            // Cap progress at 95% until explicitly set to 100%
+            // This ensures we don't show "complete" until it's really done
+            let displayPercent = percent;
+            if (percent > 0 && percent < 100) {
+                // Scale percentage to max 95% until we get the final 100%
+                displayPercent = Math.min(95, percent);
+            }
+            
+            if (bar) {
+                bar.style.width = `${displayPercent}%`;
+            }
+            
+            if (text) {
+                if (percent === 0 && bar && bar.classList.contains('indeterminate')) {
+                    text.textContent = 'Processing...';
+                } else if (percent < 100) {
+                    text.textContent = `${Math.round(displayPercent)}%`;
+                } else {
+                    text.textContent = 'Complete';
+                }
+            }
         }
     }
 
@@ -704,18 +820,19 @@ document.addEventListener('DOMContentLoaded', () => {
             displayStatus('Please complete all steps before previewing images', true);
             return;
         }
-        
+
         const previewBtn = document.getElementById('combinedPreviewBtn');
         const originalText = previewBtn.textContent;
-        
+
         try {
             previewBtn.textContent = 'Generating Previews...';
             previewBtn.disabled = true;
+            showProgressBar('combinedProgressContainer', true);
 
             const canvas = document.getElementById('combinedTemplateCanvas');
             const scaleX = originalImageSize.width / canvas.width;
             const scaleY = originalImageSize.height / canvas.height;
-            
+
             const boxConfigs = Array.from(document.querySelectorAll('.combined-box')).map(box => {
                 const rect = box.getBoundingClientRect();
                 const boxType = box.dataset.type;
@@ -753,12 +870,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 return config;
             });
-            
+
             const formattedCsvData = window.fullCsvData || csvData;
-            
+            const totalRecords = formattedCsvData.length;
+
             // For faster preview generation, only request the first row's preview initially
             const firstRowData = [formattedCsvData[0]];
-            
+
+            // Function to poll progress
+            const checkProgress = async () => {
+                try {
+                    const progressResponse = await fetch('/preview_progress');
+                    if (progressResponse.ok) {
+                        const progressData = await progressResponse.json();
+                        updateProgress(progressData.percent, 'combinedProgressContainer');
+                        
+                        if (progressData.percent < 100) {
+                            setTimeout(checkProgress, 500); // Poll every 500ms
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error checking progress:', error);
+                }
+            };
+
+            // Start progress polling
+            setTimeout(checkProgress, 500);
+
             const response = await fetch('/preview_combined_images', {
                 method: 'POST',
                 headers: {
@@ -770,36 +908,36 @@ document.addEventListener('DOMContentLoaded', () => {
                     text_boxes: boxConfigs
                 })
             });
-            
+
             const data = await response.json();
             if (response.ok) {
                 // Store all CSV data for on-demand preview generation
                 window.allCsvData = formattedCsvData;
                 window.previewBoxConfigs = boxConfigs;
                 window.currentTemplateFile = currentTemplate;
-                
+
                 // Store first preview URL and show it
                 window.previewUrls = data.preview_urls;
                 window.currentPreviewIndex = 0;
                 window.totalRecords = formattedCsvData.length;
-                
+
                 // Hide the carousel and show the single preview container
                 const carousel = document.getElementById('combinedPreviewCarousel');
                 carousel.classList.add('d-none');
-                
+
                 const previewContainer = document.getElementById('combinedPreviewContainer');
                 previewContainer.classList.remove('d-none');
-                
+
                 // Update the preview image
                 const singlePreview = document.getElementById('combinedSinglePreview');
                 singlePreview.src = data.preview_urls[0];
-                
+
                 // Set preview image dimensions to match template
                 if (window.templateDimensions) {
                     singlePreview.style.width = window.templateDimensions.width + 'px';
                     singlePreview.style.height = window.templateDimensions.height + 'px';
                     singlePreview.style.objectFit = 'contain';
-                    
+
                     // Make the preview container match template aspect ratio
                     const previewImageContainer = previewContainer.querySelector('.preview-image-container');
                     if (previewImageContainer) {
@@ -807,16 +945,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         previewImageContainer.style.margin = '0 auto';
                     }
                 }
-                
+
                 // Update the counter
                 document.getElementById('totalImagesCount').textContent = formattedCsvData.length;
                 document.getElementById('currentImageInput').value = 1;
                 document.getElementById('currentImageInput').max = formattedCsvData.length;
-                
+
                 // Enable the download button
                 const downloadBtn = document.getElementById('combinedDownloadBtn');
                 downloadBtn.disabled = false;
-                
+
                 displayStatus(`Preview generated. Total records: ${formattedCsvData.length}`);
             } else {
                 throw new Error(data.error);
@@ -826,6 +964,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
             previewBtn.textContent = originalText;
             previewBtn.disabled = false;
+            hideProgressBar('combinedProgressContainer');
         }
     });
     
@@ -940,6 +1079,33 @@ document.addEventListener('DOMContentLoaded', () => {
             downloadBtn.textContent = 'Preparing Download...';
             downloadBtn.disabled = true;
             displayStatus('Generating all images for download. This may take a moment...');
+            showProgressBar('combinedDownloadProgress', true); // Start with indeterminate progress
+
+            // Function to poll download progress
+            const checkDownloadProgress = async () => {
+                try {
+                    const progressResponse = await fetch('/download_progress');
+                    if (progressResponse.ok) {
+                        const progressData = await progressResponse.json();
+                        
+                        // Scale down the progress - max 90% from server
+                        // This leaves room for the final step (initiating download)
+                        if (progressData.percent < 100) {
+                            const scaledPercent = progressData.percent * 0.9; // Scale to max 90%
+                            updateProgress(scaledPercent, 'combinedDownloadProgress');
+                            setTimeout(checkDownloadProgress, 500); // Poll every 500ms
+                        } else {
+                            // Still don't show 100% - wait for actual download to start
+                            updateProgress(95, 'combinedDownloadProgress');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error checking download progress:', error);
+                }
+            };
+
+            // Start progress polling
+            setTimeout(checkDownloadProgress, 500);
 
             // Generate all previews
             const response = await fetch('/preview_combined_images', {
@@ -962,6 +1128,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             
             displayStatus(`Generated ${data.preview_urls.length} images. Preparing download...`);
+            updateProgress(96, 'combinedDownloadProgress');
             
             // Prepare images for individual download
             const prepareResponse = await fetch('/download_individual', {
@@ -980,6 +1147,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const downloadData = await prepareResponse.json();
+            updateProgress(98, 'combinedDownloadProgress');
+            
+            // Short delay to show almost complete
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Only set to 100% right before initiating download
+            updateProgress(100, 'combinedDownloadProgress');
             
             // Initiate direct download of the prepared zip file
             // Use both timestamp and unique_id in the URL
@@ -997,6 +1171,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     btn.disabled = false;
                     console.log('Download button re-enabled.');
                 }
+                // Keep progress bar visible for a moment after download starts
+                setTimeout(() => {
+                    hideProgressBar('combinedDownloadProgress');
+                }, 2000);
             }, 1500); // Re-enable after 1.5 seconds
 
         } catch (error) {
@@ -1009,6 +1187,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 downloadBtn.textContent = originalText;
                 downloadBtn.disabled = false;
             }
+            hideProgressBar('combinedDownloadProgress');
         } finally {
             // Keep the finally block as a safety net, but the setTimeout should handle the success case
             const downloadBtn = document.getElementById('combinedDownloadBtn');
