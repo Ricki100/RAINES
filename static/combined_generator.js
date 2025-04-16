@@ -144,6 +144,56 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
     document.head.appendChild(style);
 
+    // Mobile device detection
+    const isMobileDevice = () => {
+        return (window.innerWidth <= 768) || 
+               ('ontouchstart' in window) || 
+               (navigator.maxTouchPoints > 0) || 
+               (navigator.msMaxTouchPoints > 0);
+    };
+    
+    // Show mobile warning if needed
+    if (isMobileDevice()) {
+        showMobileWarning();
+    }
+    
+    function showMobileWarning() {
+        // Create a modal warning for mobile users
+        const modalWrapper = document.createElement('div');
+        modalWrapper.className = 'modal fade';
+        modalWrapper.id = 'mobileWarningModal';
+        modalWrapper.setAttribute('tabindex', '-1');
+        
+        modalWrapper.innerHTML = `
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-warning">
+                        <h5 class="modal-title">Mobile Device Detected</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>You're using a mobile device. While the application is responsive, some features like precise positioning might work better on a desktop.</p>
+                        <p>Tips for mobile use:</p>
+                        <ul>
+                            <li>Use two fingers to pinch-zoom the canvas</li>
+                            <li>Use one finger to drag elements</li>
+                            <li>Use the corner handle to resize elements</li>
+                        </ul>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">I Understand</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modalWrapper);
+        
+        // Show the modal
+        const modal = new bootstrap.Modal(document.getElementById('mobileWarningModal'));
+        modal.show();
+    }
+
     // State variables
     let currentTemplate = null;
     let csvData = null;
@@ -292,15 +342,27 @@ document.addEventListener('DOMContentLoaded', () => {
                     originalImageSize.width = img.width;
                     originalImageSize.height = img.height;
                     
-                    const maxWidth = 800;
-                    const maxHeight = 600;
+                    // Get the parent container's width for responsive sizing
+                    const container = document.getElementById('combinedCanvasContainer');
+                    const containerWidth = container.clientWidth;
+                    
+                    // Calculate dimensions while maintaining aspect ratio
                     let width = img.width;
                     let height = img.height;
                     
-                    if (width > maxWidth || height > maxHeight) {
-                        const ratio = Math.min(maxWidth / width, maxHeight / height);
-                        width = width * ratio;
+                    // Always scale to fit container width for better mobile experience
+                    if (width > containerWidth) {
+                        const ratio = containerWidth / width;
+                        width = containerWidth;
                         height = height * ratio;
+                    }
+                    
+                    // Make sure height is reasonable
+                    const maxHeight = Math.min(window.innerHeight * 0.6, 600);
+                    if (height > maxHeight) {
+                        const ratio = maxHeight / height;
+                        height = maxHeight;
+                        width = width * ratio;
                     }
                     
                     canvas.width = width;
@@ -316,10 +378,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     boxes = [];
                     selectedBox = null;
                     
-                    const container = document.getElementById('combinedCanvasContainer');
+                    // Set container dimensions proportionally
                     if (container) {
                         container.style.width = width + 'px';
                         container.style.height = height + 'px';
+                        
+                        // Handle window resizing
+                        window.addEventListener('resize', debounce(() => {
+                            const newContainerWidth = container.parentElement.clientWidth;
+                            if (Math.abs(newContainerWidth - parseInt(container.style.width)) > 50) {
+                                // If significant size change, reinitialize
+                                initializeCanvas(imageUrl);
+                            }
+                        }, 250));
                     }
                     
                     // Store the canvas dimensions to use for preview
@@ -339,6 +410,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 img.src = imageUrl + '?t=' + new Date().getTime();
             }
         }
+    }
+
+    // Helper debounce function for window resize
+    function debounce(func, wait) {
+        let timeout;
+        return function() {
+            const context = this;
+            const args = arguments;
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(context, args), wait);
+        };
     }
 
     // CSV Upload
@@ -418,10 +500,47 @@ document.addEventListener('DOMContentLoaded', () => {
         let initialWidth;
         let initialHeight;
         
-        // Use the element itself for dragging, not a header
-        element.addEventListener('mousedown', (e) => {
+        // Mouse events for dragging
+        element.addEventListener('mousedown', onStart);
+        
+        // Touch events for mobile
+        element.addEventListener('touchstart', (e) => {
+            // Convert touch event to similar format as mouse event
+            const touch = e.touches[0];
+            const mouseEvent = {
+                clientX: touch.clientX,
+                clientY: touch.clientY,
+                preventDefault: () => e.preventDefault(),
+                stopPropagation: () => e.stopPropagation(),
+                target: e.target
+            };
+            onStart(mouseEvent);
+        }, { passive: false });
+        
+        // The resize handle
+        const resizeHandle = element.querySelector('.resize-handle');
+        
+        // Mouse events for resizing
+        resizeHandle.addEventListener('mousedown', onResizeStart);
+        
+        // Touch events for resizing on mobile
+        resizeHandle.addEventListener('touchstart', (e) => {
+            // Convert touch to mouse-like event
+            const touch = e.touches[0];
+            const mouseEvent = {
+                clientX: touch.clientX,
+                clientY: touch.clientY,
+                preventDefault: () => e.preventDefault(),
+                stopPropagation: () => e.stopPropagation()
+            };
+            onResizeStart(mouseEvent);
+        }, { passive: false });
+        
+        // Common start handler for mouse/touch
+        function onStart(e) {
             // Prevent dragging if clicking on the resize handle
-            if (e.target.classList.contains('resize-handle')) {
+            if (e.target.classList.contains('resize-handle') || 
+                e.target.classList.contains('box-delete-btn')) {
                 return;
             }
             isDragging = true;
@@ -429,10 +548,16 @@ document.addEventListener('DOMContentLoaded', () => {
             currentY = e.clientY;
             e.preventDefault();
             selectBox(element);
-        });
+            
+            // Add move and end event listeners
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('touchmove', onTouchMove, { passive: false });
+            document.addEventListener('mouseup', onEnd);
+            document.addEventListener('touchend', onEnd);
+        }
         
-        const resizeHandle = element.querySelector('.resize-handle');
-        resizeHandle.addEventListener('mousedown', (e) => {
+        // Common resize start handler
+        function onResizeStart(e) {
             isResizing = true;
             currentX = e.clientX;
             currentY = e.clientY;
@@ -441,15 +566,35 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             e.stopPropagation();
             selectBox(element);
-        });
+            
+            // Add move and end event listeners
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('touchmove', onTouchMove, { passive: false });
+            document.addEventListener('mouseup', onEnd);
+            document.addEventListener('touchend', onEnd);
+        }
         
-        document.addEventListener('mousemove', (e) => {
+        // Touch move handler
+        function onTouchMove(e) {
+            if (!isDragging && !isResizing) return;
+            
+            const touch = e.touches[0];
+            const mouseEvent = {
+                clientX: touch.clientX,
+                clientY: touch.clientY,
+            };
+            onMove(mouseEvent);
+            e.preventDefault(); // Prevent scrolling while dragging
+        }
+        
+        // Common move handler
+        function onMove(e) {
+            const container = document.getElementById('combinedCanvasContainer');
+            const containerRect = container.getBoundingClientRect();
+            
             if (isDragging) {
                 const deltaX = e.clientX - currentX;
                 const deltaY = e.clientY - currentY;
-                
-                const container = document.getElementById('combinedCanvasContainer');
-                const containerRect = container.getBoundingClientRect();
                 
                 let newLeft = element.offsetLeft + deltaX;
                 let newTop = element.offsetTop + deltaY;
@@ -464,31 +609,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentX = e.clientX;
                 currentY = e.clientY;
             } else if (isResizing) {
-                const newWidth = Math.max(100, initialWidth + (e.clientX - currentX));
-                const newHeight = Math.max(50, initialHeight + (e.clientY - currentY));
+                // Minimum sizes that work well on mobile
+                const minWidth = 80; 
+                const minHeight = 40;
                 
-                element.style.width = `${newWidth}px`;
-                element.style.height = `${newHeight}px`;
+                const newWidth = Math.max(minWidth, initialWidth + (e.clientX - currentX));
+                const newHeight = Math.max(minHeight, initialHeight + (e.clientY - currentY));
                 
-                element.dataset.width = newWidth;
-                element.dataset.height = newHeight;
+                // Don't allow resize beyond container
+                const maxWidth = containerRect.width - element.offsetLeft;
+                const maxHeight = containerRect.height - element.offsetTop;
+                
+                element.style.width = `${Math.min(newWidth, maxWidth)}px`;
+                element.style.height = `${Math.min(newHeight, maxHeight)}px`;
+                
+                element.dataset.width = element.offsetWidth;
+                element.dataset.height = element.offsetHeight;
                 
                 updateBoxPreview(element);
             }
-        });
+        }
         
-        document.addEventListener('mouseup', () => {
-            if (isDragging || isResizing) {
-                isDragging = false;
-                isResizing = false;
-                
-                // Store dimensions
-                if (element.offsetWidth > 0 && element.offsetHeight > 0) {
-                    element.dataset.width = element.offsetWidth;
-                    element.dataset.height = element.offsetHeight;
-                }
-            }
-        });
+        // Common end handler
+        function onEnd() {
+            isDragging = false;
+            isResizing = false;
+            
+            // Clean up event listeners
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('touchmove', onTouchMove);
+            document.removeEventListener('mouseup', onEnd);
+            document.removeEventListener('touchend', onEnd);
+        }
         
         // Add delete button
         const deleteBtn = document.createElement('div');
@@ -1203,5 +1355,67 @@ document.addEventListener('DOMContentLoaded', () => {
     const initialDownloadBtn = document.getElementById('combinedDownloadBtn');
     if(initialDownloadBtn) {
         initialDownloadBtn.dataset.originalText = initialDownloadBtn.textContent;
+    }
+
+    // Add pinch-to-zoom functionality for mobile devices
+    function enableCanvasPinchZoom() {
+        const canvasContainer = document.getElementById('combinedCanvasContainer');
+        if (!canvasContainer) return;
+        
+        let initialDistance = 0;
+        let initialScale = 1;
+        let currentScale = 1;
+        
+        // Disable default pinch zoom behavior
+        canvasContainer.addEventListener('touchstart', function(e) {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                
+                // Calculate initial distance between touch points
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                initialDistance = Math.hypot(
+                    touch2.clientX - touch1.clientX,
+                    touch2.clientY - touch1.clientY
+                );
+                
+                initialScale = currentScale;
+            }
+        }, { passive: false });
+        
+        canvasContainer.addEventListener('touchmove', function(e) {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                
+                // Calculate new distance
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                const newDistance = Math.hypot(
+                    touch2.clientX - touch1.clientX,
+                    touch2.clientY - touch1.clientY
+                );
+                
+                // Calculate scale factor (constrained between 0.5 and 3)
+                const scaleChange = newDistance / initialDistance;
+                currentScale = Math.min(Math.max(initialScale * scaleChange, 0.5), 3);
+                
+                // Apply scale transform
+                canvasContainer.style.transform = `scale(${currentScale})`;
+                canvasContainer.style.transformOrigin = 'center center';
+            }
+        }, { passive: false });
+        
+        canvasContainer.addEventListener('touchend', function() {
+            // If scale is less than 0.8, reset to 1
+            if (currentScale < 0.8) {
+                currentScale = 1;
+                canvasContainer.style.transform = 'scale(1)';
+            }
+        });
+    }
+    
+    // Initialize pinch-to-zoom for mobile
+    if (isMobileDevice()) {
+        enableCanvasPinchZoom();
     }
 }); 
