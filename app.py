@@ -718,6 +718,7 @@ def update_download_progress(percent, status="processing"):
 
 if __name__ == '__main__':
     # For development
-    app.run(debug=True) 
-    # For production on Hostinger
-    # app.run(host='0.0.0.0', port=5000) 
+    # app.run(debug=True)
+    # For production on Heroku
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port) 
