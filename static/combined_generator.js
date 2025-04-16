@@ -517,43 +517,43 @@ document.addEventListener('DOMContentLoaded', () => {
         imageBox.className = 'combined-box combined-image-box';
         imageBox.style.width = '200px';
         imageBox.style.height = '200px';
-        imageBox.style.padding = '0px 5px 5px 5px';
+        // Remove padding to match text boxes - no header padding needed
+        imageBox.style.padding = '0px';
         imageBox.style.boxSizing = 'border-box';
         imageBox.style.display = 'flex';
-        imageBox.style.flexDirection = 'column';
         imageBox.style.overflow = 'hidden';
         
         imageBox.dataset.column = column;
         imageBox.dataset.width = '200';
         imageBox.dataset.height = '200';
         imageBox.dataset.type = 'image';
-        
+
+        // Create content wrapper with flex alignment to match text boxes
         const contentWrapper = document.createElement('div');
         contentWrapper.className = 'box-content-wrapper';
-        contentWrapper.style.flex = '1';
-        contentWrapper.style.overflow = 'hidden';
         contentWrapper.style.width = '100%';
         contentWrapper.style.height = '100%';
-        contentWrapper.style.position = 'relative';
+        contentWrapper.style.overflow = 'hidden';
+        contentWrapper.style.display = 'flex';
+        contentWrapper.style.alignItems = 'flex-start'; // Align to top
+        contentWrapper.style.justifyContent = 'center'; // Center horizontally
         imageBox.appendChild(contentWrapper);
         
+        // Create content
         const contentDiv = document.createElement('div');
         contentDiv.className = 'box-content';
-        contentDiv.style.wordWrap = 'break-word';
-        contentDiv.style.overflowWrap = 'break-word';
-        contentDiv.style.whiteSpace = 'pre-wrap';
         contentDiv.style.width = '100%';
-        contentDiv.style.height = '100%';
         contentDiv.style.padding = '0';
         contentDiv.style.margin = '0';
-        contentDiv.style.lineHeight = '1';
-        contentDiv.innerHTML = '<div class="placeholder">Image Placeholder</div>';
+        contentDiv.innerHTML = '<div class="placeholder" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;">Image Placeholder</div>';
         contentWrapper.appendChild(contentDiv);
         
+        // Add resize handle
         const resizeHandle = document.createElement('div');
         resizeHandle.className = 'resize-handle';
         imageBox.appendChild(resizeHandle);
         
+        // Position in the center of the canvas container
         const container = document.getElementById('combinedCanvasContainer');
         const rect = container.getBoundingClientRect();
         imageBox.style.left = `${rect.width / 2 - 100}px`;
@@ -594,12 +594,12 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (boxType === 'image') {
                 if (previewValue) {
                     contentDiv.innerHTML = `
-                        <div class="image-preview" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+                        <div class="image-preview" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 0; margin: 0;">
                             <img src="${previewValue}" style="max-width: 100%; max-height: 100%; object-fit: contain;" 
                                 onerror="this.onerror=null; this.src=''; this.parentElement.innerHTML='Invalid Image URL';">
                         </div>`;
                 } else {
-                    contentDiv.innerHTML = '<div class="placeholder">Image Placeholder</div>';
+                    contentDiv.innerHTML = '<div class="placeholder" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:0;margin:0;">Image Placeholder</div>';
                 }
             }
         }
@@ -982,15 +982,47 @@ document.addEventListener('DOMContentLoaded', () => {
             const downloadData = await prepareResponse.json();
             
             // Initiate direct download of the prepared zip file
-            window.location.href = `/download_batch/${downloadData.timestamp}`;
+            // Use both timestamp and unique_id in the URL
+            const downloadUrl = `/download_batch/${downloadData.timestamp}/${downloadData.unique_id}`;
+            window.location.href = downloadUrl;
             
             displayStatus(`Download initiated for ${downloadData.file_count} images.`);
+
+            // Re-enable the button after a short delay to allow download to start
+            setTimeout(() => {
+                const btn = document.getElementById('combinedDownloadBtn');
+                if (btn) {
+                    // Use the originalText variable captured at the start
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                    console.log('Download button re-enabled.');
+                }
+            }, 1500); // Re-enable after 1.5 seconds
+
         } catch (error) {
             displayStatus('Error downloading preview images: ' + error.message, true);
-        } finally {
+            // Ensure button is re-enabled on error too
             const downloadBtn = document.getElementById('combinedDownloadBtn');
-            downloadBtn.textContent = originalText;
-            downloadBtn.disabled = false;
+            if (downloadBtn) {
+                 // Use originalText if available, otherwise default
+                const originalText = downloadBtn.dataset.originalText || 'Download Images';
+                downloadBtn.textContent = originalText;
+                downloadBtn.disabled = false;
+            }
+        } finally {
+            // Keep the finally block as a safety net, but the setTimeout should handle the success case
+            const downloadBtn = document.getElementById('combinedDownloadBtn');
+             if (downloadBtn && downloadBtn.disabled) { // Only reset if still disabled
+                 const originalText = downloadBtn.dataset.originalText || 'Download Images';
+                 downloadBtn.textContent = originalText;
+                 downloadBtn.disabled = false;
+             }
         }
     });
+
+    // Store original button text when the script loads
+    const initialDownloadBtn = document.getElementById('combinedDownloadBtn');
+    if(initialDownloadBtn) {
+        initialDownloadBtn.dataset.originalText = initialDownloadBtn.textContent;
+    }
 }); 

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_file, url_for
+from flask import Flask, render_template, request, jsonify, send_file, url_for, after_this_request
 from werkzeug.utils import secure_filename
 from flask_cors import CORS
 import os
@@ -12,6 +12,11 @@ import tempfile
 import shutil
 from io import BytesIO
 import requests
+import glob # Import glob for file matching
+import random
+import string
+import threading
+import time
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -262,9 +267,10 @@ def draw_image_box(draw, box, image_url, img_width, img_height):
                 # Resize the overlay image
                 overlay_img = overlay_img.resize((new_width, new_height), Image.Resampling.LANCZOS)
                 
-                # Calculate position to center the image in the box
-                paste_x = int(x + (box_width - new_width) / 2)
-                paste_y = int(y + (box_height - new_height) / 2)
+                # Position image at exact box coordinates - no centering adjustment
+                # This ensures the image appears exactly where the box is placed
+                paste_x = int(x)
+                paste_y = int(y)
                 
                 # If the overlay has transparency, use it as mask
                 if overlay_img.mode in ('RGBA', 'LA'):
@@ -503,13 +509,12 @@ def generate_text_images():
         if not text_boxes or not csv_data:
             return jsonify({'error': 'Missing text boxes or CSV data'}), 400
             
-        # Create previews directory if it doesn't exist
-        os.makedirs('static/previews', exist_ok=True)
-        
-        # Clear existing previews
-        for file in os.listdir('static/previews'):
-            if file.endswith('.png'):
-                os.remove(os.path.join('static/previews', file))
+        preview_dir = os.path.join('static', 'previews')
+        os.makedirs(preview_dir, exist_ok=True)
+        # --- Start: Clear previous previews ---
+        print(f"Clearing previous text previews in: {preview_dir}")
+        clear_directory(preview_dir, pattern="preview_*.png")
+        # --- End: Clear previous previews ---
         
         preview_urls = []
         
@@ -526,15 +531,15 @@ def generate_text_images():
                     draw_text_box(draw, text_box, text, 800, 600)
             
             # Save the image
-            filename = f'preview_{i+1}.png'
-            filepath = os.path.join('static/previews', filename)
+            filename = f'preview_{i+1}_{int(datetime.now().timestamp() * 1000)}.png' # More unique name
+            filepath = os.path.join(preview_dir, filename)
             img.save(filepath)
-            preview_urls.append(f'/static/previews/{filename}')
+            preview_urls.append(url_for('static', filename=f'previews/{filename}', _external=False) + f"?v={int(datetime.now().timestamp())}")
         
         return jsonify({'preview_urls': preview_urls})
         
     except Exception as e:
-        print(f"Error generating images: {str(e)}")
+        print(f"Error generating text images: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/text_only')
@@ -665,6 +670,13 @@ def preview_combined_images():
         if not os.path.exists(template_path):
             return jsonify({'error': f'Template file not found: {template_filename}'}), 404
         
+        preview_dir = os.path.join('static', 'previews')
+        os.makedirs(preview_dir, exist_ok=True)
+        # --- Start: Clear previous previews ---
+        print(f"Clearing previous previews in: {preview_dir}")
+        clear_directory(preview_dir, pattern="preview_*.png")
+        # --- End: Clear previous previews ---
+        
         template_img = Image.open(template_path)
         
         # Generate preview images
@@ -707,9 +719,10 @@ def preview_combined_images():
                                 # Resize the overlay image
                                 overlay_img = overlay_img.resize((new_width, new_height), Image.Resampling.LANCZOS)
                                 
-                                # Calculate position to center the image in the box
-                                paste_x = int(x + (width - new_width) / 2)
-                                paste_y = int(y + (height - new_height) / 2)
+                                # Position image at exact box coordinates - no centering adjustment
+                                # This ensures the image appears exactly where the box is placed
+                                paste_x = int(x)
+                                paste_y = int(y)
                                 
                                 # Paste the image
                                 if overlay_img.mode == 'RGBA':
@@ -761,12 +774,14 @@ def preview_combined_images():
                         draw_text_box(draw, text_box, row[column], img.width, img.height)
             
             # Save preview image
-            preview_filename = f'preview_{idx}_{int(datetime.now().timestamp())}.png'
-            preview_path = os.path.join('static', 'previews', preview_filename)
+            # Use a more unique naming scheme to avoid collisions if needed
+            preview_filename = f'preview_{idx}_{int(datetime.now().timestamp() * 1000)}.png'
+            preview_path = os.path.join(preview_dir, preview_filename)
             img.save(preview_path)
             
             # Add URL to list
-            preview_url = url_for('static', filename=f'previews/{preview_filename}')
+            # Add a cache-busting query parameter
+            preview_url = url_for('static', filename=f'previews/{preview_filename}', _external=False) + f"?v={int(datetime.now().timestamp())}"
             preview_urls.append(preview_url)
         
         return jsonify({
@@ -777,6 +792,11 @@ def preview_combined_images():
     except Exception as e:
         print(f"Error generating preview: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+def generate_unique_id(length=8):
+    """Generate a random string of fixed length."""
+    letters = string.ascii_lowercase + string.digits
+    return ''.join(random.choice(letters) for i in range(length))
 
 @app.route('/download_individual', methods=['POST'])
 def download_individual():
@@ -791,9 +811,10 @@ def download_individual():
         return jsonify({'error': 'Empty preview URLs list'}), 400
     
     try:
-        # Create a directory to store the images
+        # Create a directory to store the images with timestamp and unique ID
         timestamp = int(datetime.now().timestamp())
-        download_dir = os.path.join('static', 'downloads', f'batch_{timestamp}')
+        unique_id = generate_unique_id()
+        download_dir = os.path.join('static', 'downloads', f'batch_{timestamp}_{unique_id}')
         os.makedirs(download_dir, exist_ok=True)
         
         # Copy each preview image to the download directory
@@ -815,31 +836,85 @@ def download_individual():
         return jsonify({
             'download_dir': download_dir,
             'file_count': len(file_paths),
-            'timestamp': timestamp
+            'timestamp': timestamp,
+            'unique_id': unique_id
         })
         
     except Exception as e:
         print(f"Error preparing downloads: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@app.route('/download_batch/<int:timestamp>')
-def download_batch(timestamp):
-    """Serve a single image for download"""
-    download_dir = os.path.join('static', 'downloads', f'batch_{timestamp}')
+def delayed_file_cleanup(zip_path, download_dir, delay=30):
+    """Clean up files after a delay to allow for re-downloads."""
+    def cleanup_task():
+        # Sleep for the specified delay
+        time.sleep(delay)
+        try:
+            # Check if the file still exists before trying to remove it
+            if os.path.exists(zip_path):
+                print(f"Delayed cleanup: Removing zip file {zip_path}")
+                os.remove(zip_path)
+            else:
+                print(f"Zip file {zip_path} already removed")
+                
+            if os.path.exists(download_dir):
+                print(f"Delayed cleanup: Removing directory {download_dir}")
+                shutil.rmtree(download_dir)
+            else:
+                print(f"Directory {download_dir} already removed")
+        except Exception as e:
+            print(f"Error in delayed cleanup: {str(e)}")
+    
+    # Start a new thread to handle the cleanup
+    cleanup_thread = threading.Thread(target=cleanup_task)
+    cleanup_thread.daemon = True  # Allow the thread to exit when the main program exits
+    cleanup_thread.start()
+    print(f"Scheduled cleanup for {zip_path} in {delay} seconds")
+
+@app.route('/download_batch/<int:timestamp>/<string:unique_id>')
+def download_batch(timestamp, unique_id):
+    """Serve a batch zip file for download with unique identifier"""
+    download_dir = os.path.join('static', 'downloads', f'batch_{timestamp}_{unique_id}')
     
     if not os.path.exists(download_dir):
         return "Download batch not found", 404
     
-    # Create a zip file from the directory
-    zip_filename = f'images_{timestamp}.zip'
+    # Create a zip file with unique name
+    zip_filename = f'images_{timestamp}_{unique_id}.zip'
     zip_path = os.path.join('static', 'downloads', zip_filename)
     
-    with zipfile.ZipFile(zip_path, 'w') as zipf:
-        for root, dirs, files in os.walk(download_dir):
-            for file in files:
-                zipf.write(os.path.join(root, file), arcname=file)
-    
-    return send_file(zip_path, as_attachment=True, download_name=zip_filename)
+    try:
+        # Only create the zip if it doesn't already exist
+        if not os.path.exists(zip_path):
+            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                for root, dirs, files in os.walk(download_dir):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        arcname = os.path.relpath(file_path, download_dir)
+                        zipf.write(file_path, arcname=arcname)
+            print(f"Created zip file: {zip_path}")
+        else:
+            print(f"Using existing zip file: {zip_path}")
+        
+        # Use delayed cleanup instead of immediate cleanup
+        delayed_file_cleanup(zip_path, download_dir)
+        
+        return send_file(zip_path, as_attachment=True, download_name=zip_filename)
+        
+    except Exception as e:
+        print(f"Error creating or sending zip file: {e}")
+        # Don't attempt cleanup here - let the delayed cleanup handle it
+        return "Error creating download file.", 500
+
+def clear_directory(directory_path, pattern="*.png"):
+    """Helper function to remove files matching a pattern in a directory."""
+    files = glob.glob(os.path.join(directory_path, pattern))
+    for f in files:
+        try:
+            os.remove(f)
+            print(f"Removed old file: {f}")
+        except OSError as e:
+            print(f"Error removing file {f}: {e.strerror}")
 
 if __name__ == '__main__':
     # For development
