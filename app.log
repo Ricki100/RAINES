@@ -316,3 +316,64 @@
 2025-04-13 09:21:22,064 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:21:22] "POST /upload_template HTTP/1.1" 200 -
 2025-04-13 09:21:22,085 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:21:22] "GET /static/uploads/image.jpg HTTP/1.1" 200 -
 2025-04-13 09:21:23,617 - werkzeug - INFO - 127.0.0.1 - - [13/Apr/2025 09:21:23] "POST /upload_csv HTTP/1.1" 200 -
+2025-04-16 13:16:26,564 - werkzeug - WARNING -  * Debugger is active!
+2025-04-16 13:16:26,569 - werkzeug - INFO -  * Debugger PIN: 645-846-043
+2025-04-16 13:18:55,882 - werkzeug - INFO -  * Detected change in 'C:\\Users\\user\\Documents\\GitHub\\DATA MERGE 4\\app.py', reloading
+2025-04-16 13:18:58,092 - werkzeug - WARNING -  * Debugger is active!
+2025-04-16 13:18:58,095 - werkzeug - INFO -  * Debugger PIN: 645-846-043
+2025-04-16 13:20:09,682 - werkzeug - INFO -  * Detected change in 'C:\\Users\\user\\Documents\\GitHub\\DATA MERGE 4\\app.py', reloading
+2025-04-16 13:20:11,793 - werkzeug - WARNING -  * Debugger is active!
+2025-04-16 13:20:11,799 - werkzeug - INFO -  * Debugger PIN: 645-846-043
+2025-04-16 13:37:42,606 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:37:42] "GET / HTTP/1.1" 200 -
+2025-04-16 13:37:42,690 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:37:42] "GET /text_only HTTP/1.1" 200 -
+2025-04-16 13:37:43,021 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:37:43] "GET /static/script.js HTTP/1.1" 200 -
+2025-04-16 13:37:43,029 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:37:43] "GET /static/combined_generator.js HTTP/1.1" 200 -
+2025-04-16 13:37:43,032 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:37:43] "GET /static/text_only.js HTTP/1.1" 200 -
+2025-04-16 13:37:43,038 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:37:43] "GET /static/images_only.js HTTP/1.1" 200 -
+2025-04-16 13:37:43,043 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:37:43] "GET /static/style.css HTTP/1.1" 200 -
+2025-04-16 13:37:43,414 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:37:43] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-16 13:37:46,591 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:37:46] "POST /upload_template HTTP/1.1" 200 -
+2025-04-16 13:37:46,648 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:37:46] "GET /static/uploads/image.jpg HTTP/1.1" 200 -
+2025-04-16 13:37:46,648 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:37:46] "GET /static/uploads/image.jpg?t=1744803466594 HTTP/1.1" 200 -
+2025-04-16 13:40:35,485 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:40:35] "POST /upload_csv HTTP/1.1" 200 -
+2025-04-16 13:40:45,412 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:40:45] "GET / HTTP/1.1" 200 -
+2025-04-16 13:40:45,457 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:40:45] "GET /static/style.css HTTP/1.1" 200 -
+2025-04-16 13:40:45,459 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:40:45] "GET /static/script.js HTTP/1.1" 200 -
+2025-04-16 13:40:45,467 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:40:45] "GET /static/images_only.js HTTP/1.1" 200 -
+2025-04-16 13:40:45,471 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:40:45] "GET /static/combined_generator.js HTTP/1.1" 200 -
+2025-04-16 13:40:45,484 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:40:45] "GET /text_only HTTP/1.1" 200 -
+2025-04-16 13:40:45,500 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:40:45] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+2025-04-16 13:40:45,505 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:40:45] "GET /static/text_only.js HTTP/1.1" 200 -
+2025-04-16 13:40:46,181 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:40:46] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-16 13:40:50,050 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:40:50] "POST /upload_template HTTP/1.1" 200 -
+2025-04-16 13:40:50,082 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:40:50] "GET /static/uploads/image.jpg HTTP/1.1" 200 -
+2025-04-16 13:40:50,082 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:40:50] "GET /static/uploads/image.jpg?t=1744803650056 HTTP/1.1" 200 -
+2025-04-16 13:41:08,336 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:41:08] "POST /upload_csv HTTP/1.1" 200 -
+2025-04-16 13:44:12,198 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2025-04-16 13:44:12,198 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-04-16 13:44:12,202 - werkzeug - INFO -  * Restarting with stat
+2025-04-16 13:44:13,992 - werkzeug - WARNING -  * Debugger is active!
+2025-04-16 13:44:13,996 - werkzeug - INFO -  * Debugger PIN: 645-846-043
+2025-04-16 13:44:16,703 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:44:16] "GET / HTTP/1.1" 200 -
+2025-04-16 13:44:16,798 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:44:16] "GET /text_only HTTP/1.1" 200 -
+2025-04-16 13:44:17,028 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:44:17] "GET /static/style.css HTTP/1.1" 200 -
+2025-04-16 13:44:17,041 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:44:17] "GET /static/combined_generator.js HTTP/1.1" 200 -
+2025-04-16 13:44:17,046 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:44:17] "GET /static/script.js HTTP/1.1" 200 -
+2025-04-16 13:44:17,056 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:44:17] "GET /static/images_only.js HTTP/1.1" 200 -
+2025-04-16 13:44:17,077 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:44:17] "GET /static/text_only.js HTTP/1.1" 200 -
+2025-04-16 13:44:17,088 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:44:17] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-04-16 13:44:38,390 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:44:38] "POST /upload_csv HTTP/1.1" 200 -
+2025-04-16 13:44:40,058 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:44:40] "POST /upload_template HTTP/1.1" 200 -
+2025-04-16 13:44:40,085 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:44:40] "GET /static/uploads/image.jpg?t=1744803880062 HTTP/1.1" 200 -
+2025-04-16 13:44:40,086 - werkzeug - INFO - 127.0.0.1 - - [16/Apr/2025 13:44:40] "GET /static/uploads/image.jpg HTTP/1.1" 200 -
+2025-04-16 13:45:17,230 - werkzeug - INFO -  * Detected change in 'C:\\Users\\user\\Documents\\GitHub\\DATA MERGE 4\\app.py', reloading
+2025-04-16 13:45:17,361 - werkzeug - INFO -  * Restarting with stat
+2025-04-16 13:52:08,680 - werkzeug - INFO -  * Restarting with stat
+2025-04-16 14:01:24,731 - werkzeug - INFO -  * Restarting with stat
+2025-04-16 14:05:59,206 - werkzeug - INFO -  * Restarting with stat
+2025-04-16 14:17:14,957 - werkzeug - INFO -  * Restarting with stat
+2025-04-16 14:25:49,051 - werkzeug - INFO -  * Restarting with stat
+2025-04-16 14:26:05,714 - werkzeug - INFO -  * Restarting with stat
+2025-04-16 14:26:27,727 - werkzeug - INFO -  * Restarting with stat
+2025-04-16 14:26:47,615 - werkzeug - INFO -  * Restarting with stat

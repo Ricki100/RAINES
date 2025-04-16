@@ -12,476 +12,216 @@
     <div class="container mt-4">
         <h1 class="text-center mb-4">Data Merge Tool</h1>
         
-        <!-- Tab Navigation -->
-        <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="template-tab" data-bs-toggle="tab" data-bs-target="#template" type="button" role="tab" aria-controls="template" aria-selected="true">
-                    <i class="bi bi-image"></i> Template Generator
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="textonly-tab" data-bs-toggle="tab" data-bs-target="#textonly" type="button" role="tab" aria-controls="textonly" aria-selected="false">
-                    <i class="bi bi-text-left"></i> Text Only Generator
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="images-tab" data-bs-toggle="tab" data-bs-target="#images" type="button" role="tab" aria-controls="images" aria-selected="false">Images Only</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="combined-tab" data-bs-toggle="tab" data-bs-target="#combined" type="button" role="tab" aria-controls="combined" aria-selected="false">
-                    <i class="bi bi-grid-3x3"></i> Combined Generator
-                </button>
-            </li>
-        </ul>
-
-        <!-- Tab Content -->
-        <div class="tab-content" id="myTabContent">
-            <!-- Template Generator Tab -->
-            <div class="tab-pane fade show active" id="template" role="tabpanel" aria-labelledby="template-tab">
-        <div class="row">
-            <!-- Template Upload Section -->
-            <div class="col-md-6">
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5>1. Upload Template</h5>
-                    </div>
-                    <div class="card-body">
-                        <form id="templateForm">
-                            <div class="mb-3">
-                                <label for="template" class="form-label">Upload Background Image</label>
-                                <input type="file" class="form-control" id="template" accept="image/*" required>
-                            </div>
-                            <button type="submit" class="btn btn-primary">Upload Template</button>
-                        </form>
-                        <div id="templatePreview" class="mt-3">
-                            <img id="previewImage" class="img-fluid d-none" style="max-height: 300px;">
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- CSV Upload Section -->
-            <div class="col-md-6">
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5>2. Upload CSV Data</h5>
-                    </div>
-                    <div class="card-body">
-                        <form id="csvForm">
-                            <div class="mb-3">
-                                        <label for="csv" class="form-label">Upload CSV or Excel File</label>
-                                        <input type="file" class="form-control" id="csv" accept=".csv,.xlsx,.xls" required>
-                            </div>
-                                    <button type="submit" class="btn btn-primary">Upload File</button>
-                        </form>
-                        <div id="csvPreview" class="mt-3">
-                            <table class="table table-sm">
-                                <thead id="csvHeaders"></thead>
-                                <tbody id="csvData"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Text Box Configuration -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5>3. Configure Text Boxes</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-8">
-                        <div id="canvasContainer" class="position-relative">
-                            <canvas id="templateCanvas"></canvas>
-                            <div id="textBoxes"></div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <form id="textBoxForm" class="p-3 border rounded">
-                            <div class="mb-3">
-                                <label class="form-label">Column Mapping</label>
-                                <select class="form-select" id="columnSelect"></select>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">Font Family</label>
-                                <select class="form-select" id="fontFamily">
-                                    <option value="Arial">Arial</option>
-                                    <option value="Times New Roman">Times New Roman</option>
-                                    <option value="Helvetica">Helvetica</option>
-                                    <option value="Georgia">Georgia</option>
-                                    <option value="Verdana">Verdana</option>
-                                    <option value="Courier New">Courier New</option>
-                                </select>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Font Size (px)</label>
-                                <div class="input-group">
-                                    <input type="number" class="form-control" id="fontSize" value="24" min="8" max="200">
-                                    <button type="button" class="btn btn-outline-secondary" id="increaseFontSize">+</button>
-                                    <button type="button" class="btn btn-outline-secondary" id="decreaseFontSize">-</button>
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Font Style</label>
-                                <div class="btn-group w-100" role="group">
-                                    <button type="button" class="btn btn-outline-secondary" id="boldText">B</button>
-                                    <button type="button" class="btn btn-outline-secondary" id="italicText">I</button>
-                                    <button type="button" class="btn btn-outline-secondary" id="underlineText">U</button>
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Text Alignment</label>
-                                <div class="btn-group w-100" role="group">
-                                    <button type="button" class="btn btn-outline-secondary" data-align="left">Left</button>
-                                    <button type="button" class="btn btn-outline-secondary" data-align="center">Center</button>
-                                    <button type="button" class="btn btn-outline-secondary" data-align="right">Right</button>
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Font Color</label>
-                                <div class="input-group">
-                                    <input type="color" class="form-control form-control-color w-100" id="fontColor" value="#000000">
-                                </div>
-                            </div>
-
-                            <button type="button" class="btn btn-primary w-100" id="addTextBox">Add Text Box</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Generate Section -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5>4. Preview and Generate Images</h5>
-            </div>
-            <div class="card-body">
-                <button id="previewBtn" class="btn btn-primary mb-3">Preview Images</button>
-                
-                <!-- Preview Carousel -->
-                        <div id="previewCarousel" class="carousel slide mb-4 d-none" data-bs-ride="false">
-                            <div class="carousel-indicators">
-                                <!-- Indicators will be inserted here -->
-                            </div>
-                    <div class="carousel-inner">
-                        <!-- Preview images will be inserted here -->
-                    </div>
-                    <button class="carousel-control-prev" type="button" data-bs-target="#previewCarousel" data-bs-slide="prev">
-                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                        <span class="visually-hidden">Previous</span>
-                    </button>
-                    <button class="carousel-control-next" type="button" data-bs-target="#previewCarousel" data-bs-slide="next">
-                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                        <span class="visually-hidden">Next</span>
-                    </button>
-                            
-                            <!-- Download Button - Inside Carousel -->
-                            <div class="carousel-caption position-static bg-light py-3 mb-0">
-                                <button id="downloadPreviewBtn" class="btn btn-primary btn-lg">
-                                    <i class="bi bi-download"></i> Download All Previews
+        <!-- Combined Generator - Now Main Interface -->
+        <div class="container-fluid p-0">
+            <div class="row g-2">
+                <!-- Left sidebar with collapsible panels -->
+                <div class="col-md-3">
+                    <div class="accordion" id="combinedAccordion">
+                        <!-- Template Upload Panel -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTemplate" aria-expanded="true">
+                                    1. Upload Template
                                 </button>
+                            </h2>
+                            <div id="collapseTemplate" class="accordion-collapse collapse show" data-bs-parent="#combinedAccordion">
+                                <div class="accordion-body">
+                                    <form id="combinedTemplateForm">
+                                        <div class="mb-2">
+                                            <input type="file" class="form-control form-control-sm" id="combinedTemplate" accept="image/*" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary btn-sm w-100">Upload</button>
+                                    </form>
+                                    <div class="mt-2">
+                                        <img id="combinedPreview" src="" class="img-fluid d-none" alt="Preview">
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         
-                        <div id="generationStatus" class="mt-3"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Text Only Generator Tab -->
-            <div class="tab-pane fade" id="textonly" role="tabpanel" aria-labelledby="textonly-tab">
-                <iframe src="{{ url_for('text_only') }}" style="width: 100%; height: 100vh; border: none;"></iframe>
-            </div>
-
-            <div class="tab-pane fade" id="images" role="tabpanel" aria-labelledby="images-tab">
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="card mb-4">
-                            <div class="card-body">
-                                <h5 class="card-title">Template Image</h5>
-                                <form id="imageTemplateForm">
-                                    <div class="mb-3">
-                                        <label for="imageTemplate" class="form-label">Upload Template</label>
-                                        <input type="file" class="form-control" id="imageTemplate" accept="image/*" required>
-                                    </div>
-                                    <button type="submit" class="btn btn-primary">Upload Template</button>
-                                </form>
-                                <div class="mt-3">
-                                    <img id="imagePreview" src="" class="img-fluid d-none" alt="Template Preview">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="card mb-4">
-                            <div class="card-body">
-                                <h5 class="card-title">CSV Data</h5>
-                                <form id="imageCsvForm">
-                                    <div class="mb-3">
-                                        <label for="imageCsv" class="form-label">Upload CSV or Excel</label>
-                                        <input type="file" class="form-control" id="imageCsv" accept=".csv,.xlsx,.xls" required>
-                                    </div>
-                                    <button type="submit" class="btn btn-primary">Upload File</button>
-                                </form>
-                                <div class="mt-3">
-                                    <div class="table-responsive">
+                        <!-- CSV Upload Panel -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCSV">
+                                    2. Upload Data
+                                </button>
+                            </h2>
+                            <div id="collapseCSV" class="accordion-collapse collapse" data-bs-parent="#combinedAccordion">
+                                <div class="accordion-body">
+                                    <form id="combinedCsvForm">
+                                        <div class="mb-2">
+                                            <input type="file" class="form-control form-control-sm" id="combinedCsv" accept=".csv,.xlsx,.xls" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary btn-sm w-100">Upload</button>
+                                    </form>
+                                    <div class="mt-2 csv-preview-container" style="max-height: 150px; overflow-y: auto; font-size: 0.8rem;">
                                         <table class="table table-sm">
-                                            <thead id="imageCsvHeaders"></thead>
-                                            <tbody id="imageCsvData"></tbody>
+                                            <thead id="combinedCsvHeaders"></thead>
+                                            <tbody id="combinedCsvData"></tbody>
                                         </table>
                                     </div>
                                 </div>
                             </div>
                         </div>
-
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">Image Settings</h5>
-                                <div class="mb-3">
-                                    <label for="imageColumnSelect" class="form-label">Select Image Column</label>
-                                    <select class="form-select" id="imageColumnSelect"></select>
-                                </div>
-                                <button id="addImageBox" class="btn btn-primary">Add Image Box</button>
-                                <button id="previewImages" class="btn btn-success mt-3">Preview Images</button>
-                                <button id="downloadImages" class="btn btn-primary mt-3" disabled>Download Images</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-8">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">Template Preview</h5>
-                                <div id="imageCanvasContainer" class="position-relative" style="border: 1px solid #ccc;">
-                                    <canvas id="imageTemplateCanvas" class="img-fluid"></canvas>
-                                    <div id="imageBoxes"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Combined Generator Tab -->
-            <div class="tab-pane fade" id="combined" role="tabpanel" aria-labelledby="combined-tab">
-                <div class="container-fluid p-0">
-                    <div class="row g-2">
-                        <!-- Left sidebar with collapsible panels -->
-                        <div class="col-md-3">
-                            <div class="accordion" id="combinedAccordion">
-                                <!-- Template Upload Panel -->
-                                <div class="accordion-item">
-                                    <h2 class="accordion-header">
-                                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTemplate" aria-expanded="true">
-                                            1. Upload Template
-                                        </button>
-                                    </h2>
-                                    <div id="collapseTemplate" class="accordion-collapse collapse show" data-bs-parent="#combinedAccordion">
-                                        <div class="accordion-body">
-                                            <form id="combinedTemplateForm">
-                                                <div class="mb-2">
-                                                    <input type="file" class="form-control form-control-sm" id="combinedTemplate" accept="image/*" required>
-                                                </div>
-                                                <button type="submit" class="btn btn-primary btn-sm w-100">Upload</button>
-                                            </form>
-                                            <div class="mt-2">
-                                                <img id="combinedPreview" src="" class="img-fluid d-none" alt="Preview">
+                        
+                        <!-- Add Elements Panel -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseElements">
+                                    3. Add Elements
+                                </button>
+                            </h2>
+                            <div id="collapseElements" class="accordion-collapse collapse" data-bs-parent="#combinedAccordion">
+                                <div class="accordion-body p-0">
+                                    <ul class="nav nav-tabs nav-fill" id="elementsTabs" role="tablist">
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link active" id="textBox-tab" data-bs-toggle="tab" data-bs-target="#textBoxPanel" type="button" role="tab">Text</button>
+                                        </li>
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" id="imageBox-tab" data-bs-toggle="tab" data-bs-target="#imageBoxPanel" type="button" role="tab">Image</button>
+                                        </li>
+                                    </ul>
+                                    
+                                    <div class="tab-content p-2" id="elementsTabContent">
+                                        <!-- Text Box Tab -->
+                                        <div class="tab-pane fade show active" id="textBoxPanel" role="tabpanel">
+                                            <div class="mb-2">
+                                                <label class="form-label form-label-sm">Text Column</label>
+                                                <select class="form-select form-select-sm" id="combinedTextColumnSelect"></select>
                                             </div>
+                                            
+                                            <div class="mb-2">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <label class="form-label form-label-sm mb-0">Font</label>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <button type="button" class="btn btn-outline-secondary px-1 py-0" id="combinedBoldText">B</button>
+                                                        <button type="button" class="btn btn-outline-secondary px-1 py-0" id="combinedItalicText">I</button>
+                                                        <button type="button" class="btn btn-outline-secondary px-1 py-0" id="combinedUnderlineText">U</button>
+                                                    </div>
+                                                </div>
+                                                <div class="d-flex mt-1 gap-1">
+                                                    <select class="form-select form-select-sm" id="combinedFontFamily" style="width: 60%;">
+                                                        <option value="Arial">Arial</option>
+                                                        <option value="Times New Roman">Times</option>
+                                                        <option value="Helvetica">Helvetica</option>
+                                                        <option value="Georgia">Georgia</option>
+                                                        <option value="Verdana">Verdana</option>
+                                                    </select>
+                                                    <div class="input-group input-group-sm" style="width: 40%;">
+                                                        <input type="number" class="form-control" id="combinedFontSize" value="24" min="8" max="200">
+                                                        <button type="button" class="btn btn-outline-secondary" id="combinedIncreaseFontSize">+</button>
+                                                        <button type="button" class="btn btn-outline-secondary" id="combinedDecreaseFontSize">-</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="mb-2">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <label class="form-label form-label-sm mb-0">Color</label>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <button type="button" class="btn btn-outline-secondary px-1 py-0" data-align="left" id="combinedAlignLeft">
+                                                            <i class="bi bi-text-left"></i>
+                                                        </button>
+                                                        <button type="button" class="btn btn-outline-secondary px-1 py-0" data-align="center" id="combinedAlignCenter">
+                                                            <i class="bi bi-text-center"></i>
+                                                        </button>
+                                                        <button type="button" class="btn btn-outline-secondary px-1 py-0" data-align="right" id="combinedAlignRight">
+                                                            <i class="bi bi-text-right"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <input type="color" class="form-control form-control-sm form-control-color w-100 mt-1" id="combinedFontColor" value="#000000">
+                                            </div>
+                                            
+                                            <button type="button" class="btn btn-primary btn-sm w-100" id="addCombinedTextBox">Add Text Box</button>
                                         </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- CSV Upload Panel -->
-                                <div class="accordion-item">
-                                    <h2 class="accordion-header">
-                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCSV">
-                                            2. Upload Data
-                                        </button>
-                                    </h2>
-                                    <div id="collapseCSV" class="accordion-collapse collapse" data-bs-parent="#combinedAccordion">
-                                        <div class="accordion-body">
-                                            <form id="combinedCsvForm">
-                                                <div class="mb-2">
-                                                    <input type="file" class="form-control form-control-sm" id="combinedCsv" accept=".csv,.xlsx,.xls" required>
-                                                </div>
-                                                <button type="submit" class="btn btn-primary btn-sm w-100">Upload</button>
-                                            </form>
-                                            <div class="mt-2 csv-preview-container" style="max-height: 150px; overflow-y: auto; font-size: 0.8rem;">
-                                                <table class="table table-sm">
-                                                    <thead id="combinedCsvHeaders"></thead>
-                                                    <tbody id="combinedCsvData"></tbody>
-                                                </table>
+                                        
+                                        <!-- Image Box Tab -->
+                                        <div class="tab-pane fade" id="imageBoxPanel" role="tabpanel">
+                                            <div class="mb-2">
+                                                <label class="form-label form-label-sm">Image URL Column</label>
+                                                <select class="form-select form-select-sm" id="combinedImageColumnSelect"></select>
                                             </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Add Elements Panel -->
-                                <div class="accordion-item">
-                                    <h2 class="accordion-header">
-                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseElements">
-                                            3. Add Elements
-                                        </button>
-                                    </h2>
-                                    <div id="collapseElements" class="accordion-collapse collapse" data-bs-parent="#combinedAccordion">
-                                        <div class="accordion-body p-0">
-                                            <ul class="nav nav-tabs nav-fill" id="elementsTabs" role="tablist">
-                                                <li class="nav-item" role="presentation">
-                                                    <button class="nav-link active" id="textBox-tab" data-bs-toggle="tab" data-bs-target="#textBoxPanel" type="button" role="tab">Text</button>
-                                                </li>
-                                                <li class="nav-item" role="presentation">
-                                                    <button class="nav-link" id="imageBox-tab" data-bs-toggle="tab" data-bs-target="#imageBoxPanel" type="button" role="tab">Image</button>
-                                                </li>
-                                            </ul>
-                                            
-                                            <div class="tab-content p-2" id="elementsTabContent">
-                                                <!-- Text Box Tab -->
-                                                <div class="tab-pane fade show active" id="textBoxPanel" role="tabpanel">
-                                                    <div class="mb-2">
-                                                        <label class="form-label form-label-sm">Text Column</label>
-                                                        <select class="form-select form-select-sm" id="combinedTextColumnSelect"></select>
-                                                    </div>
-                                                    
-                                                    <div class="mb-2">
-                                                        <div class="d-flex justify-content-between align-items-center">
-                                                            <label class="form-label form-label-sm mb-0">Font</label>
-                                                            <div class="btn-group btn-group-sm">
-                                                                <button type="button" class="btn btn-outline-secondary px-1 py-0" id="combinedBoldText">B</button>
-                                                                <button type="button" class="btn btn-outline-secondary px-1 py-0" id="combinedItalicText">I</button>
-                                                                <button type="button" class="btn btn-outline-secondary px-1 py-0" id="combinedUnderlineText">U</button>
-                                                            </div>
-                                                        </div>
-                                                        <div class="d-flex mt-1 gap-1">
-                                                            <select class="form-select form-select-sm" id="combinedFontFamily" style="width: 60%;">
-                                                                <option value="Arial">Arial</option>
-                                                                <option value="Times New Roman">Times</option>
-                                                                <option value="Helvetica">Helvetica</option>
-                                                                <option value="Georgia">Georgia</option>
-                                                                <option value="Verdana">Verdana</option>
-                                                            </select>
-                                                            <div class="input-group input-group-sm" style="width: 40%;">
-                                                                <input type="number" class="form-control" id="combinedFontSize" value="24" min="8" max="200">
-                                                                <button type="button" class="btn btn-outline-secondary" id="combinedIncreaseFontSize">+</button>
-                                                                <button type="button" class="btn btn-outline-secondary" id="combinedDecreaseFontSize">-</button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <div class="mb-2">
-                                                        <div class="d-flex justify-content-between align-items-center">
-                                                            <label class="form-label form-label-sm mb-0">Color</label>
-                                                            <div class="btn-group btn-group-sm">
-                                                                <button type="button" class="btn btn-outline-secondary px-1 py-0" data-align="left" id="combinedAlignLeft">
-                                                                    <i class="bi bi-text-left"></i>
-                                                                </button>
-                                                                <button type="button" class="btn btn-outline-secondary px-1 py-0" data-align="center" id="combinedAlignCenter">
-                                                                    <i class="bi bi-text-center"></i>
-                                                                </button>
-                                                                <button type="button" class="btn btn-outline-secondary px-1 py-0" data-align="right" id="combinedAlignRight">
-                                                                    <i class="bi bi-text-right"></i>
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                        <input type="color" class="form-control form-control-sm form-control-color w-100 mt-1" id="combinedFontColor" value="#000000">
-                                                    </div>
-                                                    
-                                                    <button type="button" class="btn btn-primary btn-sm w-100" id="addCombinedTextBox">Add Text Box</button>
-                                                </div>
-                                                
-                                                <!-- Image Box Tab -->
-                                                <div class="tab-pane fade" id="imageBoxPanel" role="tabpanel">
-                                                    <div class="mb-2">
-                                                        <label class="form-label form-label-sm">Image URL Column</label>
-                                                        <select class="form-select form-select-sm" id="combinedImageColumnSelect"></select>
-                                                    </div>
-                                                    <button type="button" class="btn btn-primary btn-sm w-100" id="addCombinedImageBox">Add Image Box</button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Generate Panel -->
-                                <div class="accordion-item">
-                                    <h2 class="accordion-header" id="generating-header">
-                                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#generating-collapse" aria-expanded="true" aria-controls="generating-collapse">
-                                            4. Generate & Download
-                                        </button>
-                                    </h2>
-                                    <div id="generating-collapse" class="accordion-collapse collapse show" aria-labelledby="generating-header">
-                                        <div class="accordion-body">
-                                            <button id="combinedPreviewBtn" class="btn btn-success btn-block mb-2 w-100">Preview Images</button>
-                                            
-                                            <!-- Preview Progress Bar -->
-                                            <div id="combinedProgressContainer" class="progress-container">
-                                                <div class="progress-bar"></div>
-                                                <div class="progress-text">0%</div>
-                                            </div>
-                                            
-                                            <button id="combinedDownloadBtn" class="btn btn-primary btn-block mb-2 w-100" disabled>Download Images</button>
-                                            
-                                            <!-- Download Progress Bar -->
-                                            <div id="combinedDownloadProgress" class="progress-container">
-                                                <div class="progress-bar"></div>
-                                                <div class="progress-text">0%</div>
-                                            </div>
-                                            
-                                            <div id="combinedStatus" class="mt-3"></div>
+                                            <button type="button" class="btn btn-primary btn-sm w-100" id="addCombinedImageBox">Add Image Box</button>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         
-                        <!-- Main content area with canvas -->
-                        <div class="col-md-9">
-                            <div class="card h-100">
-                                <div class="card-body p-2">
-                                    <div id="combinedCanvasContainer" class="position-relative" style="min-height: 400px; border: 1px solid #ddd; margin-bottom: 10px;">
-                                        <canvas id="combinedTemplateCanvas" class="img-fluid"></canvas>
-                                        <div id="combinedBoxes"></div>
+                        <!-- Generate Panel -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="generating-header">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#generating-collapse" aria-expanded="true" aria-controls="generating-collapse">
+                                    4. Generate & Download
+                                </button>
+                            </h2>
+                            <div id="generating-collapse" class="accordion-collapse collapse show" aria-labelledby="generating-header">
+                                <div class="accordion-body">
+                                    <button id="combinedPreviewBtn" class="btn btn-success btn-block mb-2 w-100">Preview Images</button>
+                                    
+                                    <!-- Preview Progress Bar -->
+                                    <div id="combinedProgressContainer" class="progress-container">
+                                        <div class="progress-bar"></div>
+                                        <div class="progress-text">0%</div>
                                     </div>
                                     
-                                    <!-- Carousel below canvas (only shown when previewing) -->
-                                    <div id="combinedPreviewCarousel" class="carousel slide d-none mt-2" data-bs-ride="false">
-                                        <div class="carousel-indicators"></div>
-                                        <div class="carousel-inner"></div>
-                                        <button class="carousel-control-prev" type="button" data-bs-target="#combinedPreviewCarousel" data-bs-slide="prev">
-                                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                                            <span class="visually-hidden">Previous</span>
-                                        </button>
-                                        <button class="carousel-control-next" type="button" data-bs-target="#combinedPreviewCarousel" data-bs-slide="next">
-                                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                                            <span class="visually-hidden">Next</span>
-                                        </button>
+                                    <button id="combinedDownloadBtn" class="btn btn-primary btn-block mb-2 w-100" disabled>Download Images</button>
+                                    
+                                    <!-- Download Progress Bar -->
+                                    <div id="combinedDownloadProgress" class="progress-container">
+                                        <div class="progress-bar"></div>
+                                        <div class="progress-text">0%</div>
                                     </div>
+                                    
+                                    <div id="combinedStatus" class="mt-3"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Main content area with canvas -->
+                <div class="col-md-9">
+                    <div class="card h-100">
+                        <div class="card-body p-2">
+                            <div id="combinedCanvasContainer" class="position-relative" style="min-height: 400px; border: 1px solid #ddd; margin-bottom: 10px;">
+                                <canvas id="combinedTemplateCanvas" class="img-fluid"></canvas>
+                                <div id="combinedBoxes"></div>
+                            </div>
+                            
+                            <!-- Carousel below canvas (only shown when previewing) -->
+                            <div id="combinedPreviewCarousel" class="carousel slide d-none mt-2" data-bs-ride="false">
+                                <div class="carousel-indicators"></div>
+                                <div class="carousel-inner"></div>
+                                <button class="carousel-control-prev" type="button" data-bs-target="#combinedPreviewCarousel" data-bs-slide="prev">
+                                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                    <span class="visually-hidden">Previous</span>
+                                </button>
+                                <button class="carousel-control-next" type="button" data-bs-target="#combinedPreviewCarousel" data-bs-slide="next">
+                                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                    <span class="visually-hidden">Next</span>
+                                </button>
+                            </div>
 
-                                    <!-- Single image preview with navigation -->
-                                    <div id="combinedPreviewContainer" class="d-none mt-2">
-                                        <div class="text-center mb-2 preview-image-container">
-                                            <img id="combinedSinglePreview" class="img-fluid" style="border: 1px solid #ddd;" alt="Preview">
-                                        </div>
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <button id="prevImageBtn" class="btn btn-sm btn-outline-primary">
-                                                <i class="bi bi-chevron-left"></i> Previous
-                                            </button>
-                                            <div class="d-flex align-items-center">
-                                                <span>Record</span>
-                                                <input type="number" id="currentImageInput" class="form-control form-control-sm mx-2" style="width: 70px;" min="1" value="1">
-                                                <span>of <span id="totalImagesCount">0</span></span>
-                                            </div>
-                                            <button id="nextImageBtn" class="btn btn-sm btn-outline-primary">
-                                                Next <i class="bi bi-chevron-right"></i>
-                                            </button>
-                                        </div>
+                            <!-- Single image preview with navigation -->
+                            <div id="combinedPreviewContainer" class="d-none mt-2">
+                                <div class="text-center mb-2 preview-image-container">
+                                    <img id="combinedSinglePreview" class="img-fluid" style="border: 1px solid #ddd;" alt="Preview">
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <button id="prevImageBtn" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-chevron-left"></i> Previous
+                                    </button>
+                                    <div class="d-flex align-items-center">
+                                        <span>Record</span>
+                                        <input type="number" id="currentImageInput" class="form-control form-control-sm mx-2" style="width: 70px;" min="1" value="1">
+                                        <span>of <span id="totalImagesCount">0</span></span>
                                     </div>
+                                    <button id="nextImageBtn" class="btn btn-sm btn-outline-primary">
+                                        Next <i class="bi bi-chevron-right"></i>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -492,8 +232,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
-    <script src="{{ url_for('static', filename='images_only.js') }}"></script>
     <script src="{{ url_for('static', filename='combined_generator.js') }}"></script>
 </body>
 </html> 
