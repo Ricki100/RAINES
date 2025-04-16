@@ -45,8 +45,83 @@ os.makedirs(FONTS_DIR, exist_ok=True)
 
 def get_font_path(font_name, bold=False, italic=False):
     """Get the appropriate font file path based on name and style."""
-    # Since we only have arial.ttf, we'll use it and simulate bold/italic
-    return DEFAULT_FONT
+    # Normalize font name for matching
+    font_name = font_name.lower().replace(' ', '')
+    
+    # Map common font names to our available font files
+    font_map = {
+        'arial': {
+            'regular': 'Arial.ttf',
+            'bold': 'ArialBd.ttf',
+            'italic': 'ArialIt.ttf',
+            'bolditalic': 'ArialBdIt.ttf'
+        },
+        'timesnewroman': {
+            'regular': 'TimesNewRoman.ttf',
+            'bold': 'TimesNewRomanBd.ttf',
+            'italic': 'TimesNewRomanIt.ttf',
+            'bolditalic': 'TimesNewRomanBdIt.ttf'
+        },
+        'times': {  # Alias for Times New Roman
+            'regular': 'TimesNewRoman.ttf',
+            'bold': 'TimesNewRomanBd.ttf',
+            'italic': 'TimesNewRomanIt.ttf',
+            'bolditalic': 'TimesNewRomanBdIt.ttf'
+        },
+        'helvetica': {
+            'regular': 'Helvetica.ttf',
+            'bold': 'HelveticaBd.ttf',
+            'italic': 'Helvetica.ttf',  # Use regular as fallback
+            'bolditalic': 'HelveticaBd.ttf'  # Use bold as fallback
+        },
+        'helveticaneue': {
+            'regular': 'HelveticaNeue.ttf',
+            'bold': 'HelveticaNeueBd.ttf',
+            'italic': 'HelveticaNeue.ttf',  # Use regular as fallback
+            'bolditalic': 'HelveticaNeueBd.ttf'  # Use bold as fallback
+        },
+        'georgia': {
+            'regular': 'Georgia.ttf',
+            'bold': 'GeorgiaBd.ttf',
+            'italic': 'GeorgiaIt.ttf',
+            'bolditalic': 'GeorgiaBdIt.ttf'
+        },
+        'verdana': {
+            'regular': 'Verdana.ttf',
+            'bold': 'VerdanaBd.ttf',
+            'italic': 'VerdanaIt.ttf',
+            'bolditalic': 'VerdanaBdIt.ttf'
+        },
+        'couriernew': {
+            'regular': 'CourierNew.ttf',
+            'bold': 'CourierNew.ttf',  # Use regular as fallback
+            'italic': 'CourierNew.ttf',  # Use regular as fallback
+            'bolditalic': 'CourierNew.ttf'  # Use regular as fallback
+        }
+    }
+    
+    # Default to Arial if font not found
+    if font_name not in font_map:
+        font_name = 'arial'
+    
+    style = 'regular'
+    if bold and italic:
+        style = 'bolditalic'
+    elif bold:
+        style = 'bold'
+    elif italic:
+        style = 'italic'
+    
+    # Get the font file name
+    font_file = font_map[font_name][style]
+    font_path = os.path.join(FONTS_DIR, font_file)
+    
+    # If file doesn't exist, fall back to default Arial
+    if not os.path.exists(font_path):
+        print(f"Warning: Font file {font_path} not found, falling back to Arial")
+        return os.path.join(FONTS_DIR, 'Arial.ttf')
+    
+    return font_path
 
 @app.route('/')
 def index():
@@ -61,8 +136,21 @@ def upload_template():
     if file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
     
-    filename = secure_filename(file.filename)
+    # Generate a fixed filename like 'current_template.png' to overwrite any existing template
+    original_filename = secure_filename(file.filename)
+    extension = os.path.splitext(original_filename)[1]
+    filename = f'current_template{extension}'
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    
+    # Clear any existing template files
+    for f in glob.glob(os.path.join(app.config['UPLOAD_FOLDER'], 'current_template.*')):
+        try:
+            os.remove(f)
+            print(f"Removed old template file: {f}")
+        except Exception as e:
+            print(f"Warning: Could not remove old template file {f}: {e}")
+    
+    # Save the new template file
     file.save(filepath)
     
     # Return the URL for the uploaded image
@@ -170,10 +258,13 @@ def draw_text_box(draw, box, text, img_width, img_height):
         italic = str_to_bool(box.get('italic', False))
         underline = str_to_bool(box.get('underline', False))
         
-        # Get the font and apply stroke for bold simulation if needed
-        font = ImageFont.truetype(DEFAULT_FONT, font_size)
+        # Get the appropriate font file based on family and style
+        font_path = get_font_path(font_family, bold, italic)
+        font = ImageFont.truetype(font_path, font_size)
+        
+        # Use stroke only if we don't have a bold font variant and bold is requested
         stroke_width = 0
-        if bold:
+        if bold and font_path.lower().find('bd') == -1:
             stroke_width = max(1, font_size // 30)  # Scale stroke width with font size
         
         # Get box dimensions and position
@@ -195,7 +286,7 @@ def draw_text_box(draw, box, text, img_width, img_height):
         # Calculate line height and total text height
         line_spacing = font_size * 1.2
         total_height = len(lines) * line_spacing
-        
+
         # Draw each line with proper alignment
         current_y = y # Start drawing directly from the box's top y
         for line in lines:
@@ -212,8 +303,8 @@ def draw_text_box(draw, box, text, img_width, img_height):
             elif align == 'right':
                 line_x = x + box_width - line_width
             
-            # Draw the line with stroke for bold simulation
-            if bold:
+            # Draw the line with stroke for bold simulation if needed
+            if stroke_width > 0:
                 # Draw the stroke
                 draw.text((line_x, current_y), line, font=font, fill=color, stroke_width=stroke_width, stroke_fill=color)
             else:
