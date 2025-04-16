@@ -302,10 +302,12 @@ document.addEventListener('DOMContentLoaded', () => {
         let initialWidth;
         let initialHeight;
         
-        // Find draggable area (header)
-        const header = element.querySelector('.box-header');
-        
-        header.addEventListener('mousedown', (e) => {
+        // Use the element itself for dragging, not a header
+        element.addEventListener('mousedown', (e) => {
+            // Prevent dragging if clicking on the resize handle
+            if (e.target.classList.contains('resize-handle')) {
+                return;
+            }
             isDragging = true;
             currentX = e.clientX;
             currentY = e.clientY;
@@ -440,18 +442,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const textBox = document.createElement('div');
         textBox.className = 'combined-box combined-text-box';
         
+        textBox.style.padding = '0px 5px 5px 5px';
         textBox.style.fontSize = `${fontSize}px`;
         textBox.style.color = color;
         textBox.style.fontFamily = fontFamily;
         textBox.style.width = '150px';
         textBox.style.height = '60px';
-        textBox.style.padding = '5px';
         textBox.style.boxSizing = 'border-box';
         textBox.style.display = 'flex';
-        textBox.style.flexDirection = 'column';
         textBox.style.overflow = 'hidden';
         
-        // Store data attributes
         textBox.dataset.column = column;
         textBox.dataset.fontSize = fontSize;
         textBox.dataset.color = color;
@@ -464,36 +464,34 @@ document.addEventListener('DOMContentLoaded', () => {
         textBox.dataset.height = '60';
         textBox.dataset.type = 'text';
         
-        // Create header
-        const headerDiv = document.createElement('div');
-        headerDiv.className = 'box-header';
-        headerDiv.textContent = column;
-        textBox.appendChild(headerDiv);
-        
-        // Create content wrapper
+        // Create content wrapper (adjust styling if needed)
         const contentWrapper = document.createElement('div');
         contentWrapper.className = 'box-content-wrapper';
-        contentWrapper.style.flex = '1';
+        contentWrapper.style.width = '100%'; // Take full width
+        contentWrapper.style.height = '100%'; // Take full height
         contentWrapper.style.overflow = 'hidden';
-        contentWrapper.style.width = '100%';
-        contentWrapper.style.position = 'relative';
+        contentWrapper.style.display = 'flex'; // Use flex to align content
+        contentWrapper.style.alignItems = 'flex-start'; // Align content div to the top
         textBox.appendChild(contentWrapper);
-        
-        // Create content
+
+        // Create content div
         const contentDiv = document.createElement('div');
         contentDiv.className = 'box-content';
         contentDiv.style.wordWrap = 'break-word';
         contentDiv.style.overflowWrap = 'break-word';
         contentDiv.style.whiteSpace = 'pre-wrap';
         contentDiv.style.width = '100%';
+        // Remove fixed height, let it grow naturally
+        // contentDiv.style.height = '100%';
+        contentDiv.style.padding = '0';
+        contentDiv.style.margin = '0';
+        contentDiv.style.lineHeight = '1'; // Keep this tight
         contentWrapper.appendChild(contentDiv);
         
-        // Add resize handle
         const resizeHandle = document.createElement('div');
         resizeHandle.className = 'resize-handle';
         textBox.appendChild(resizeHandle);
         
-        // Position in the center of the canvas container
         const container = document.getElementById('combinedCanvasContainer');
         const rect = container.getBoundingClientRect();
         textBox.style.left = `${rect.width / 2 - 75}px`;
@@ -519,7 +517,7 @@ document.addEventListener('DOMContentLoaded', () => {
         imageBox.className = 'combined-box combined-image-box';
         imageBox.style.width = '200px';
         imageBox.style.height = '200px';
-        imageBox.style.padding = '5px';
+        imageBox.style.padding = '0px 5px 5px 5px';
         imageBox.style.boxSizing = 'border-box';
         imageBox.style.display = 'flex';
         imageBox.style.flexDirection = 'column';
@@ -530,34 +528,32 @@ document.addEventListener('DOMContentLoaded', () => {
         imageBox.dataset.height = '200';
         imageBox.dataset.type = 'image';
         
-        // Create header
-        const headerDiv = document.createElement('div');
-        headerDiv.className = 'box-header';
-        headerDiv.textContent = column;
-        imageBox.appendChild(headerDiv);
-        
-        // Create content wrapper
         const contentWrapper = document.createElement('div');
         contentWrapper.className = 'box-content-wrapper';
         contentWrapper.style.flex = '1';
         contentWrapper.style.overflow = 'hidden';
         contentWrapper.style.width = '100%';
+        contentWrapper.style.height = '100%';
         contentWrapper.style.position = 'relative';
         imageBox.appendChild(contentWrapper);
         
-        // Create content
         const contentDiv = document.createElement('div');
         contentDiv.className = 'box-content';
-        contentDiv.innerHTML = '<div class="placeholder">Image Placeholder</div>';
+        contentDiv.style.wordWrap = 'break-word';
+        contentDiv.style.overflowWrap = 'break-word';
+        contentDiv.style.whiteSpace = 'pre-wrap';
         contentDiv.style.width = '100%';
+        contentDiv.style.height = '100%';
+        contentDiv.style.padding = '0';
+        contentDiv.style.margin = '0';
+        contentDiv.style.lineHeight = '1';
+        contentDiv.innerHTML = '<div class="placeholder">Image Placeholder</div>';
         contentWrapper.appendChild(contentDiv);
         
-        // Add resize handle
         const resizeHandle = document.createElement('div');
         resizeHandle.className = 'resize-handle';
         imageBox.appendChild(resizeHandle);
         
-        // Position in the center of the canvas container
         const container = document.getElementById('combinedCanvasContainer');
         const rect = container.getBoundingClientRect();
         imageBox.style.left = `${rect.width / 2 - 100}px`;
@@ -590,6 +586,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 contentDiv.style.fontStyle = box.dataset.italic === 'true' ? 'italic' : 'normal';
                 contentDiv.style.textDecoration = box.dataset.underline === 'true' ? 'underline' : 'none';
                 contentDiv.style.textAlign = box.dataset.align || 'left';
+                contentDiv.style.padding = '0'; // Reinforce no padding
+                contentDiv.style.margin = '0'; // Reinforce no margin
+                contentDiv.style.lineHeight = '1'; // Keep line height tight
                 
                 contentDiv.textContent = previewValue || 'Text Preview';
             } else if (boxType === 'image') {

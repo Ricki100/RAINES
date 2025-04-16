@@ -15,12 +15,16 @@ import requests
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
+
+# Configure upload folder and other settings
 app.config['UPLOAD_FOLDER'] = os.path.join('static', 'uploads')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+app.config['SECRET_KEY'] = os.urandom(24)  # Generate a random secret key
 
 # Ensure required directories exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(os.path.join('static', 'previews'), exist_ok=True)
+os.makedirs(os.path.join('static', 'downloads'), exist_ok=True)
 os.makedirs(os.path.join('static', 'fonts'), exist_ok=True)
 
 # Font management
@@ -189,13 +193,9 @@ def draw_text_box(draw, box, text, img_width, img_height):
         # Calculate line height and total text height
         line_spacing = font_size * 1.2
         total_height = len(lines) * line_spacing
-        
-        # Adjust starting y position to respect vertical alignment
-        if total_height < box_height:
-            y = y + (box_height - total_height) // 2
-        
+
         # Draw each line with proper alignment
-        current_y = y
+        current_y = y # Start drawing directly from the box's top y
         for line in lines:
             # Calculate line width for alignment
             bbox = draw.textbbox((0, 0), line, font=font)
@@ -842,4 +842,7 @@ def download_batch(timestamp):
     return send_file(zip_path, as_attachment=True, download_name=zip_filename)
 
 if __name__ == '__main__':
-    app.run(debug=True) 
+    # For development
+    app.run(debug=True)
+    # For production on Hostinger
+    # app.run(host='0.0.0.0', port=5000) 
