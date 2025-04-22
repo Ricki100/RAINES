@@ -254,82 +254,89 @@ def draw_text_box(draw, box, text, img_width, img_height):
                 return val
             return str(val).lower() == 'true'
         
-        bold = str_to_bool(box.get('bold', False))
-        italic = str_to_bool(box.get('italic', False))
-        underline = str_to_bool(box.get('underline', False))
+        # Check for bold/italic styles
+        is_bold = str_to_bool(box.get('bold', False))
+        is_italic = str_to_bool(box.get('italic', False))
+        is_underline = str_to_bool(box.get('underline', False))
+        is_strikethrough = str_to_bool(box.get('strikethrough', False))
         
-        # Get the appropriate font file based on family and style
-        font_path = get_font_path(font_family, bold, italic)
+        # Get text alignment
+        text_align = box.get('align', 'left')
+        
+        # Create appropriate font based on style
+        font_path = get_font_path(font_family, bold=is_bold, italic=is_italic)
         font = ImageFont.truetype(font_path, font_size)
         
-        # Use stroke only if we don't have a bold font variant and bold is requested
-        stroke_width = 0
-        if bold and font_path.lower().find('bd') == -1:
-            stroke_width = max(1, font_size // 30)  # Scale stroke width with font size
+        # Get color (default to black)
+        color_str = box.get('color', '#000000')
+        if color_str.startswith('#'):
+            r = int(color_str[1:3], 16)
+            g = int(color_str[3:5], 16)
+            b = int(color_str[5:7], 16)
+            color = (r, g, b)
+        else:
+            color = (0, 0, 0)  # Default to black
         
-        # Get box dimensions and position
-        x = float(box.get('x', 0))
-        y = float(box.get('y', 0))
-        box_width = float(box.get('width', img_width - x))
-        box_height = float(box.get('height', img_height - y))
+        # Calculate box position and dimensions
+        x = int(float(box.get('x', 0)))
+        y = int(float(box.get('y', 0)))
+        width = int(float(box.get('width', 100)))
+        height = int(float(box.get('height', 50)))
         
-        # Validate color
-        color = box.get('color', '#000000')
-        if not color.startswith('#'):
-            color = '#000000'
-        # Convert color from hex to RGB
-        color = tuple(int(color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
+        # Skip if outside image bounds
+        if x > img_width or y > img_height:
+            print(f"Warning: Box at ({x},{y}) is outside image bounds")
+            return
         
-        # Wrap text to fit box width
-        lines = wrap_text_to_width(draw, text, font, box_width - (stroke_width * 2 if bold else 0))
+        # Wrap text to fit width
+        wrapped_lines = wrap_text_to_width(draw, str(text), font, width)
         
         # Calculate line height and total text height
-        line_spacing = font_size * 1.2
-        total_height = len(lines) * line_spacing
-
+        line_height = int(font_size * 1.2)  # Approx line height
+        total_text_height = len(wrapped_lines) * line_height
+        
+        # Handle vertical alignment (center text in box by default)
+        start_y = y
+        if total_text_height < height:
+            start_y = y + (height - total_text_height) // 2
+        
         # Draw each line with proper alignment
-        current_y = y # Start drawing directly from the box's top y
-        for line in lines:
-            # Calculate line width for alignment
-            bbox = draw.textbbox((0, 0), line, font=font)
-            line_width = bbox[2] - bbox[0]
+        for i, line in enumerate(wrapped_lines):
+            # Get line width for alignment
+            line_width = draw.textlength(line, font=font)
             
             # Calculate x position based on alignment
             line_x = x
-            align = box.get('align', 'left')
+            if text_align == 'center':
+                line_x = x + (width - line_width) // 2
+            elif text_align == 'right':
+                line_x = x + (width - line_width)
             
-            if align == 'center':
-                line_x = x + (box_width - line_width) // 2
-            elif align == 'right':
-                line_x = x + box_width - line_width
+            # Calculate y position for this line
+            line_y = start_y + i * line_height
             
-            # Draw the line with stroke for bold simulation if needed
-            if stroke_width > 0:
-                # Draw the stroke
-                draw.text((line_x, current_y), line, font=font, fill=color, stroke_width=stroke_width, stroke_fill=color)
-            else:
-                draw.text((line_x, current_y), line, font=font, fill=color)
-            
-            # Draw underline if specified
-            if underline:
-                underline_y = current_y + font_size
-                underline_width = max(1, font_size // 20)
-                if bold:
-                    underline_width = max(underline_width, stroke_width)
-                draw.line([(line_x, underline_y), (line_x + line_width, underline_y)],
-                         fill=color, width=underline_width)
-            
-            current_y += line_spacing
-            
-            # Stop if we exceed box height
-            if current_y - y > box_height:
+            # Skip if outside image bounds
+            if line_y > img_height:
                 break
+            
+            # Draw the text
+            draw.text((line_x, line_y), line, fill=color, font=font)
+            
+            # Draw underline if needed
+            if is_underline:
+                underline_y = line_y + font_size * 0.9  # Position underline slightly below text
+                draw.line((line_x, underline_y, line_x + line_width, underline_y), fill=color, width=max(1, font_size // 20))
+            
+            # Draw strikethrough if needed
+            if is_strikethrough:
+                # Position strikethrough exactly in the middle of text
+                strike_y = line_y + (font_size * 0.4)  # Position strikethrough through the middle of text
+                # Make the strikethrough line a bit thicker for better visibility
+                line_thickness = max(1, font_size // 15)
+                draw.line((line_x, strike_y, line_x + line_width, strike_y), fill=color, width=line_thickness)
                 
     except Exception as e:
-        print(f"Error drawing text box: {str(e)}")
-        # Draw a red rectangle to indicate error
-        draw.rectangle([x, y, x + box_width, y + box_height], outline='red', width=2)
-        draw.text((x + 10, y + box_height/2), f"Error: {str(e)[:50]}...", fill='red')
+        print(f"Error drawing text box: {e}")
 
 def draw_image_box(draw, box, image_url, img_width, img_height):
     """Helper function to draw image from URL into a box"""
@@ -495,6 +502,7 @@ def preview_combined_images():
                         bold = box.get('bold', False)
                         italic = box.get('italic', False)
                         underline = box.get('underline', False)
+                        strikethrough = box.get('strikethrough', False)
                         align = box.get('align', 'left')
                         
                         # Create a modified box with all required parameters for draw_text_box
@@ -509,6 +517,7 @@ def preview_combined_images():
                             'bold': str(bold).lower(),
                             'italic': str(italic).lower(),
                             'underline': str(underline).lower(),
+                            'strikethrough': str(strikethrough).lower(),
                             'align': align
                         }
                         
@@ -719,5 +728,5 @@ def update_download_progress(percent, status="processing"):
 if __name__ == '__main__':
     # For development
     app.run(debug=True) 
-    # For production on Render
-    # app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000))) 
+    # For production on Hostinger
+    # app.run(host='0.0.0.0', port=5000) 

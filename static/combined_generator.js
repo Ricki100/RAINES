@@ -458,6 +458,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 newLeft = Math.max(0, Math.min(newLeft, containerRect.width - element.offsetWidth));
                 newTop = Math.max(0, Math.min(newTop, containerRect.height - element.offsetHeight));
                 
+                // Ensure we set the style with px to make it a valid CSS value
                 element.style.left = `${newLeft}px`;
                 element.style.top = `${newTop}px`;
                 
@@ -470,8 +471,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 element.style.width = `${newWidth}px`;
                 element.style.height = `${newHeight}px`;
                 
-                element.dataset.width = newWidth;
-                element.dataset.height = newHeight;
+                // Update the dataset values without 'px' suffix
+                element.dataset.width = newWidth.toString();
+                element.dataset.height = newHeight.toString();
                 
                 updateBoxPreview(element);
             }
@@ -532,6 +534,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('combinedBoldText').classList.toggle('active', box.dataset.bold === 'true');
             document.getElementById('combinedItalicText').classList.toggle('active', box.dataset.italic === 'true');
             document.getElementById('combinedUnderlineText').classList.toggle('active', box.dataset.underline === 'true');
+            document.getElementById('combinedStrikethroughText').classList.toggle('active', box.dataset.strikethrough === 'true');
             
             // Update alignment buttons
             document.querySelectorAll('[data-align]').forEach(btn => {
@@ -558,7 +561,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const textBox = document.createElement('div');
         textBox.className = 'combined-box combined-text-box';
         
-        textBox.style.padding = '0px 5px 5px 5px';
+        // Remove padding at the top to fix alignment issues
+        textBox.style.padding = '0';
         textBox.style.fontSize = `${fontSize}px`;
         textBox.style.color = color;
         textBox.style.fontFamily = fontFamily;
@@ -575,6 +579,7 @@ document.addEventListener('DOMContentLoaded', () => {
         textBox.dataset.bold = 'false';
         textBox.dataset.italic = 'false';
         textBox.dataset.underline = 'false';
+        textBox.dataset.strikethrough = 'false';
         textBox.dataset.align = 'left';
         textBox.dataset.width = '150';
         textBox.dataset.height = '60';
@@ -587,7 +592,8 @@ document.addEventListener('DOMContentLoaded', () => {
         contentWrapper.style.height = '100%'; // Take full height
         contentWrapper.style.overflow = 'hidden';
         contentWrapper.style.display = 'flex'; // Use flex to align content
-        contentWrapper.style.alignItems = 'flex-start'; // Align content div to the top
+        contentWrapper.style.alignItems = 'center'; // Center content vertically
+        contentWrapper.style.justifyContent = 'center'; // Center content horizontally
         textBox.appendChild(contentWrapper);
 
         // Create content div
@@ -597,11 +603,10 @@ document.addEventListener('DOMContentLoaded', () => {
         contentDiv.style.overflowWrap = 'break-word';
         contentDiv.style.whiteSpace = 'pre-wrap';
         contentDiv.style.width = '100%';
-        // Remove fixed height, let it grow naturally
-        // contentDiv.style.height = '100%';
+        contentDiv.style.textAlign = 'center'; // Center text by default
         contentDiv.style.padding = '0';
         contentDiv.style.margin = '0';
-        contentDiv.style.lineHeight = '1'; // Keep this tight
+        contentDiv.style.lineHeight = '1.2'; // Slightly increase line height for better readability
         contentWrapper.appendChild(contentDiv);
         
         const resizeHandle = document.createElement('div');
@@ -610,8 +615,12 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const container = document.getElementById('combinedCanvasContainer');
         const rect = container.getBoundingClientRect();
-        textBox.style.left = `${rect.width / 2 - 75}px`;
-        textBox.style.top = `${rect.height / 2 - 30}px`;
+        const centerX = rect.width / 2 - 75;  // Center horizontally
+        const centerY = rect.height / 2 - 30; // Center vertically
+        
+        // Set position with explicit px values
+        textBox.style.left = `${centerX}px`;
+        textBox.style.top = `${centerY}px`;
         
         makeDraggableAndResizable(textBox);
         document.getElementById('combinedBoxes').appendChild(textBox);
@@ -633,8 +642,8 @@ document.addEventListener('DOMContentLoaded', () => {
         imageBox.className = 'combined-box combined-image-box';
         imageBox.style.width = '200px';
         imageBox.style.height = '200px';
-        // Remove padding to match text boxes - no header padding needed
-        imageBox.style.padding = '0px';
+        // Remove all padding completely
+        imageBox.style.padding = '0';
         imageBox.style.boxSizing = 'border-box';
         imageBox.style.display = 'flex';
         imageBox.style.overflow = 'hidden';
@@ -651,7 +660,7 @@ document.addEventListener('DOMContentLoaded', () => {
         contentWrapper.style.height = '100%';
         contentWrapper.style.overflow = 'hidden';
         contentWrapper.style.display = 'flex';
-        contentWrapper.style.alignItems = 'flex-start'; // Align to top
+        contentWrapper.style.alignItems = 'center'; // Center vertically
         contentWrapper.style.justifyContent = 'center'; // Center horizontally
         imageBox.appendChild(contentWrapper);
         
@@ -659,6 +668,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const contentDiv = document.createElement('div');
         contentDiv.className = 'box-content';
         contentDiv.style.width = '100%';
+        contentDiv.style.height = '100%';
+        contentDiv.style.display = 'flex';
+        contentDiv.style.alignItems = 'center';
+        contentDiv.style.justifyContent = 'center';
         contentDiv.style.padding = '0';
         contentDiv.style.margin = '0';
         contentDiv.innerHTML = '<div class="placeholder" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;">Image Placeholder</div>';
@@ -672,8 +685,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // Position in the center of the canvas container
         const container = document.getElementById('combinedCanvasContainer');
         const rect = container.getBoundingClientRect();
-        imageBox.style.left = `${rect.width / 2 - 100}px`;
-        imageBox.style.top = `${rect.height / 2 - 100}px`;
+        const centerX = rect.width / 2 - 100;  // Center horizontally
+        const centerY = rect.height / 2 - 100; // Center vertically
+        
+        // Set position with explicit px values
+        imageBox.style.left = `${centerX}px`;
+        imageBox.style.top = `${centerY}px`;
         
         makeDraggableAndResizable(imageBox);
         document.getElementById('combinedBoxes').appendChild(imageBox);
@@ -700,11 +717,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 contentDiv.style.fontFamily = box.dataset.fontFamily;
                 contentDiv.style.fontWeight = box.dataset.bold === 'true' ? 'bold' : 'normal';
                 contentDiv.style.fontStyle = box.dataset.italic === 'true' ? 'italic' : 'normal';
-                contentDiv.style.textDecoration = box.dataset.underline === 'true' ? 'underline' : 'none';
-                contentDiv.style.textAlign = box.dataset.align || 'left';
-                contentDiv.style.padding = '0'; // Reinforce no padding
-                contentDiv.style.margin = '0'; // Reinforce no margin
-                contentDiv.style.lineHeight = '1'; // Keep line height tight
+                
+                // Handle both underline and strikethrough
+                let textDecoration = [];
+                if (box.dataset.underline === 'true') textDecoration.push('underline');
+                if (box.dataset.strikethrough === 'true') textDecoration.push('line-through');
+                contentDiv.style.textDecoration = textDecoration.length ? textDecoration.join(' ') : 'none';
+                
+                // Set text alignment
+                const textAlign = box.dataset.align || 'left';
+                contentDiv.style.textAlign = textAlign;
+                
+                contentDiv.style.padding = '0'; // Ensure no padding
+                contentDiv.style.margin = '0'; // Ensure no margin
+                contentDiv.style.lineHeight = '1.2'; // Consistent line height
                 
                 contentDiv.textContent = previewValue || 'Text Preview';
             } else if (boxType === 'image') {
@@ -746,6 +772,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const isUnderline = selectedBox.dataset.underline === 'true';
         selectedBox.dataset.underline = (!isUnderline).toString();
         this.classList.toggle('active', !isUnderline);
+        updateBoxPreview(selectedBox);
+    });
+
+    document.getElementById('combinedStrikethroughText').addEventListener('click', function() {
+        if (!selectedBox || selectedBox.dataset.type !== 'text') return;
+        
+        const isStrikethrough = selectedBox.dataset.strikethrough === 'true';
+        selectedBox.dataset.strikethrough = (!isStrikethrough).toString();
+        this.classList.toggle('active', !isStrikethrough);
         updateBoxPreview(selectedBox);
     });
 
@@ -806,9 +841,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const align = this.dataset.align;
             selectedBox.dataset.align = align;
             
+            // Update all alignment buttons' active state
             document.querySelectorAll('[id^="combinedAlign"]').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.align === align);
             });
+            
+            // Update the text box alignment immediately
+            const contentDiv = selectedBox.querySelector('.box-content');
+            if (contentDiv) {
+                contentDiv.style.textAlign = align;
+            }
             
             updateBoxPreview(selectedBox);
         });
@@ -834,17 +876,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const scaleY = originalImageSize.height / canvas.height;
 
             const boxConfigs = Array.from(document.querySelectorAll('.combined-box')).map(box => {
-                const rect = box.getBoundingClientRect();
                 const boxType = box.dataset.type;
                 const container = document.getElementById('combinedCanvasContainer');
                 
-                const relativeLeft = box.offsetLeft;
-                const relativeTop = box.offsetTop;
+                // Get position and size directly from the box's styles
+                const left = parseInt(box.style.left) || box.offsetLeft;
+                const top = parseInt(box.style.top) || box.offsetTop;
+                const width = parseInt(box.dataset.width) || box.offsetWidth;
+                const height = parseInt(box.dataset.height) || box.offsetHeight;
                 
-                const scaledX = parseFloat((relativeLeft * scaleX).toFixed(2));
-                const scaledY = parseFloat((relativeTop * scaleY).toFixed(2));
-                const scaledWidth = parseFloat((parseInt(box.dataset.width || box.offsetWidth) * scaleX).toFixed(2));
-                const scaledHeight = parseFloat((parseInt(box.dataset.height || box.offsetHeight) * scaleY).toFixed(2));
+                // Scale positions and dimensions to match original image size
+                const scaledX = parseFloat((left * scaleX).toFixed(2));
+                const scaledY = parseFloat((top * scaleY).toFixed(2));
+                const scaledWidth = parseFloat((width * scaleX).toFixed(2));
+                const scaledHeight = parseFloat((height * scaleY).toFixed(2));
                 
                 // Base config with shared properties
                 const config = {
@@ -863,6 +908,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     config.bold = box.dataset.bold === 'true';
                     config.italic = box.dataset.italic === 'true';
                     config.underline = box.dataset.underline === 'true';
+                    config.strikethrough = box.dataset.strikethrough === 'true';
                     config.align = box.dataset.align;
                 } else if (boxType === 'image') {
                     config.isImage = true;

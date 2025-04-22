@@ -287,4 +287,59 @@
 /* Hide text styling controls for image boxes */
 .text-box[data-is-image="true"] .text-styling {
     display: none;
+}
+
+/* Price styles with line-through for old prices */
+.price-old {
+    text-decoration: line-through;
+    color: #888;
+    margin-right: 5px;
+}
+
+.line-through {
+    text-decoration: line-through;
+}
+
+/* Optional: Add a class for new prices that stands out better */
+.price-new {
+    font-weight: bold;
+    color: #d9534f; /* Bootstrap danger red */
+}
+
+/* Add styles for the combined box classes used in the new generator */
+.combined-box {
+    position: absolute;
+    background-color: rgba(255, 255, 255, 0.2);
+    border: 2px dashed #ccc;
+    cursor: move;
+    padding: 0 !important; /* Enforce no padding */
+    overflow: hidden;
+}
+
+.combined-text-box {
+    border-color: #007bff;
+}
+
+.combined-image-box {
+    border-color: #28a745;
+}
+
+.combined-box.selected {
+    border-style: solid;
+    background-color: rgba(255, 255, 255, 0.3);
+    z-index: 1000;
+}
+
+.box-content-wrapper {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.box-content {
+    width: 100%;
+    padding: 0;
+    margin: 0;
 } 
