@@ -394,19 +394,39 @@ def preview_combined_images():
     update_preview_progress(5, "starting")
     
     try:
-        data = request.get_json()
-        
-        if not data:
+        # More robust JSON handling
+        try:
+            data = request.get_json(force=True, silent=True)
+        except Exception as json_err:
+            print(f"JSON parsing error: {str(json_err)}")
             reset_preview_progress()
-            return jsonify({'error': 'No data received'}), 400
+            return jsonify({'error': f'Invalid JSON format: {str(json_err)}'}), 400
+            
+        if not data:
+            # Try to get raw data if JSON parsing failed
+            try:
+                raw_data = request.get_data()
+                print(f"Raw request data: {raw_data[:200]}...")  # Print first 200 chars for debugging
+                reset_preview_progress()
+                return jsonify({'error': 'Could not parse JSON data'}), 400
+            except Exception as e:
+                reset_preview_progress()
+                return jsonify({'error': 'No data received'}), 400
         
         template_filename = data.get('template')
         csv_data = data.get('csv_data', [])
         boxes = data.get('text_boxes', [])
         
         if not template_filename or not csv_data or not boxes:
+            print(f"Missing parameters: template={bool(template_filename)}, csv_data={bool(csv_data)}, boxes={bool(boxes)}")
             reset_preview_progress()
             return jsonify({'error': 'Missing required parameters'}), 400
+        
+        # Validate data types
+        if not isinstance(csv_data, list) or not isinstance(boxes, list):
+            print(f"Invalid data types: csv_data type={type(csv_data)}, boxes type={type(boxes)}")
+            reset_preview_progress()
+            return jsonify({'error': 'Invalid data format: csv_data and text_boxes must be arrays'}), 400
         
         template_path = os.path.join(app.config['UPLOAD_FOLDER'], template_filename)
         if not os.path.exists(template_path):
@@ -536,25 +556,19 @@ def preview_combined_images():
         time.sleep(0.5)  # Short delay to ensure frontend gets final progress update
         update_preview_progress(100, "complete")
         
-        # Prepare the result as a simple Python dictionary 
-        result = {
+        # At the end, when returning data, ensure we're returning well-formed JSON
+        preview_urls = [str(url) for url in preview_urls]  # Ensure all URLs are strings
+        
+        # Return a simplified response
+        return json.dumps({
             'preview_urls': preview_urls,
             'message': f'Generated {len(preview_urls)} preview images'
-        }
-        
-        # Use Flask's jsonify with a try-except to handle any serialization issues
-        try:
-            return jsonify(result)
-        except Exception as e:
-            print(f"Error serializing response: {str(e)}")
-            # Fallback to a simpler response
-            return jsonify({
-                'error': 'Error generating preview',
-                'message': str(e)
-            }), 500
-            
+        }), 200, {'Content-Type': 'application/json'}
     except Exception as e:
+        import traceback
+        traceback_str = traceback.format_exc()
         print(f"Error generating preview: {str(e)}")
+        print(traceback_str)
         reset_preview_progress()
         return jsonify({'error': str(e)}), 500
 
