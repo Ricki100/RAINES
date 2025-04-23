@@ -17,15 +17,6 @@ import random
 import string
 import threading
 import time
-import logging
-import traceback
-import base64
-
-# Set up logging
-logging.basicConfig(level=logging.INFO, 
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    handlers=[logging.StreamHandler()])
-logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -35,13 +26,19 @@ app.config['UPLOAD_FOLDER'] = os.path.join('static', 'uploads')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 app.config['SECRET_KEY'] = os.urandom(24)  # Generate a random secret key
 
-# Global variables to track progress
-preview_progress = {"percent": 0, "status": "idle"}
-download_progress = {"percent": 0, "status": "idle"}
+# Ensure required directories exist
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs(os.path.join('static', 'previews'), exist_ok=True)
+os.makedirs(os.path.join('static', 'downloads'), exist_ok=True)
+os.makedirs(os.path.join('static', 'fonts'), exist_ok=True)
 
 # Font management
 FONTS_DIR = os.path.join('static', 'fonts')
 DEFAULT_FONT = os.path.join(FONTS_DIR, 'arial.ttf')
+
+# Global variables to track progress
+preview_progress = {"percent": 0, "status": "idle"}
+download_progress = {"percent": 0, "status": "idle"}
 
 # Ensure fonts directory exists
 os.makedirs(FONTS_DIR, exist_ok=True)
@@ -122,7 +119,7 @@ def get_font_path(font_name, bold=False, italic=False):
     # If file doesn't exist, fall back to default Arial
     if not os.path.exists(font_path):
         print(f"Warning: Font file {font_path} not found, falling back to Arial")
-        return DEFAULT_FONT
+        return os.path.join(FONTS_DIR, 'Arial.ttf')
     
     return font_path
 
@@ -350,104 +347,44 @@ def draw_image_box(draw, box, image_url, img_width, img_height):
         box_width = float(box.get('width', img_width - x))
         box_height = float(box.get('height', img_height - y))
         
-        logger.info(f"Processing image box: URL={image_url[:50]}..., box={x},{y},{box_width},{box_height}")
-        
         try:
-            # Try to download the image - handle various URL formats
-            if image_url.startswith('data:image'):
-                # It's a data URL
-                logger.info("Processing data URL image")
-                try:
-                    # Extract base64 data
-                    image_data = image_url.split(',')[1]
-                    image_bytes = BytesIO(base64.b64decode(image_data))
-                    overlay_img = Image.open(image_bytes)
-                except Exception as e:
-                    logger.error(f"Error processing data URL: {str(e)}")
-                    raise
-            elif image_url.startswith(('http://', 'https://')):
-                # It's a remote URL
-                logger.info(f"Downloading image from URL: {image_url[:50]}...")
-                try:
-                    response = requests.get(image_url, timeout=10)
-                    if response.status_code != 200:
-                        logger.error(f"HTTP error {response.status_code} for URL: {image_url[:50]}...")
-                        raise ValueError(f"HTTP error {response.status_code}")
-                    
-                    image_bytes = BytesIO(response.content)
-                    overlay_img = Image.open(image_bytes)
-                except requests.RequestException as e:
-                    logger.error(f"Request error for URL {image_url[:50]}...: {str(e)}")
-                    raise
-                except Exception as e:
-                    logger.error(f"Error opening image from URL: {str(e)}")
-                    raise
-            else:
-                # Assume it's a local file path
-                logger.info(f"Opening local image: {image_url}")
-                try:
-                    # Check if it's a relative path
-                    if not os.path.isabs(image_url):
-                        image_url = os.path.join(app.config['UPLOAD_FOLDER'], image_url)
-                    
-                    if not os.path.exists(image_url):
-                        logger.error(f"Local image file not found: {image_url}")
-                        raise FileNotFoundError(f"Image not found: {image_url}")
-                    
-                    overlay_img = Image.open(image_url)
-                except Exception as e:
-                    logger.error(f"Error opening local image: {str(e)}")
-                    raise
-            
-            # Calculate dimensions while maintaining aspect ratio
-            overlay_width, overlay_height = overlay_img.size
-            logger.info(f"Original image size: {overlay_width}x{overlay_height}")
-            
-            scale = min(box_width/overlay_width, box_height/overlay_height)
-            new_width = int(overlay_width * scale)
-            new_height = int(overlay_height * scale)
-            
-            logger.info(f"Resizing to: {new_width}x{new_height}")
-            
-            # Resize the overlay image
-            try:
-                overlay_img = overlay_img.resize((new_width, new_height), Image.Resampling.LANCZOS)
-            except Exception as e:
-                logger.error(f"Error resizing image: {str(e)}")
-                # Try a simpler resampling method
-                try:
-                    overlay_img = overlay_img.resize((new_width, new_height), Image.Resampling.NEAREST)
-                except Exception as e2:
-                    logger.error(f"Error with fallback resize: {str(e2)}")
-                    raise
-            
-            # Position image at exact box coordinates - no centering adjustment
-            # This ensures the image appears exactly where the box is placed
-            paste_x = int(x)
-            paste_y = int(y)
-            
-            # If the overlay has transparency, use it as mask
-            if overlay_img.mode in ('RGBA', 'LA'):
-                # Extract the alpha channel as mask
-                mask = overlay_img.split()[-1] if overlay_img.mode == 'RGBA' else overlay_img.split()[1]
-                # Convert to RGB for pasting
-                overlay_img = overlay_img.convert('RGB')
-                logger.info("Using transparency mask for image")
-                return (overlay_img, (paste_x, paste_y), mask)
-            else:
-                logger.info("Using direct paste for image (no transparency)")
-                return (overlay_img, (paste_x, paste_y))
+            # Download and open the image from URL
+            response = requests.get(image_url, timeout=5)
+            if response.status_code == 200:
+                overlay_img = Image.open(BytesIO(response.content))
                 
+                # Calculate dimensions while maintaining aspect ratio
+                overlay_width, overlay_height = overlay_img.size
+                scale = min(box_width/overlay_width, box_height/overlay_height)
+                new_width = int(overlay_width * scale)
+                new_height = int(overlay_height * scale)
+                
+                # Resize the overlay image
+                overlay_img = overlay_img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                
+                # Position image at exact box coordinates - no centering adjustment
+                # This ensures the image appears exactly where the box is placed
+                paste_x = int(x)
+                paste_y = int(y)
+                
+                # If the overlay has transparency, use it as mask
+                if overlay_img.mode in ('RGBA', 'LA'):
+                    # Extract the alpha channel as mask
+                    mask = overlay_img.split()[-1] if overlay_img.mode == 'RGBA' else overlay_img.split()[1]
+                    # Convert to RGB for pasting
+                    overlay_img = overlay_img.convert('RGB')
+                    return (overlay_img, (paste_x, paste_y), mask)
+                else:
+                    return (overlay_img, (paste_x, paste_y))
+                    
         except Exception as e:
-            logger.error(f"Error processing image URL: {str(e)}")
+            print(f"Error processing image URL: {str(e)}")
             # Draw an error placeholder
             draw.rectangle([x, y, x + box_width, y + box_height], outline='red', width=2)
             draw.text((x + 10, y + box_height/2), f"Image Error: {str(e)[:50]}...", fill='red')
-            return None
             
     except Exception as e:
-        logger.error(f"Error drawing image box: {str(e)}")
-        return None
+        print(f"Error drawing image box: {str(e)}")
 
 @app.route('/preview_combined_images', methods=['POST'])
 def preview_combined_images():
@@ -460,7 +397,6 @@ def preview_combined_images():
         data = request.get_json()
         
         if not data:
-            logger.error("No data received in preview_combined_images")
             reset_preview_progress()
             return jsonify({'error': 'No data received'}), 400
         
@@ -468,193 +404,157 @@ def preview_combined_images():
         csv_data = data.get('csv_data', [])
         boxes = data.get('text_boxes', [])
         
-        logger.info(f"Preview request received: template={template_filename}, csv_rows={len(csv_data)}, boxes={len(boxes)}")
-        
         if not template_filename or not csv_data or not boxes:
-            logger.error(f"Missing required parameters: template={template_filename}, csv_rows={len(csv_data)}, boxes={len(boxes)}")
             reset_preview_progress()
             return jsonify({'error': 'Missing required parameters'}), 400
         
-        try:
-            template_path = os.path.join(app.config['UPLOAD_FOLDER'], template_filename)
-            if not os.path.exists(template_path):
-                logger.error(f"Template file not found: {template_path}")
-                reset_preview_progress()
-                return jsonify({'error': f'Template file not found: {template_filename}'}), 404
-            
-            update_preview_progress(10, "preparing")
-            
-            preview_dir = os.path.join('static', 'previews')
-            # Double ensure the directory exists
-            os.makedirs(preview_dir, exist_ok=True)
-            
-            # Clear previous previews
-            try:
-                clear_directory(preview_dir, pattern="preview_*.png")
-                logger.info(f"Cleared previous previews from {preview_dir}")
-            except Exception as e:
-                logger.warning(f"Error clearing directory {preview_dir}: {str(e)}")
-            
-            update_preview_progress(15, "loading template")
-            
-            try:
-                template_img = Image.open(template_path)
-                logger.info(f"Template loaded: {template_path}, size={template_img.size}, mode={template_img.mode}")
-            except Exception as e:
-                logger.error(f"Error opening template image {template_path}: {str(e)}")
-                reset_preview_progress()
-                return jsonify({'error': f'Failed to open template image: {str(e)}'}), 500
-            
-            # Generate preview images
-            preview_urls = []
-            max_previews = min(len(csv_data), 5) if len(csv_data) > 5 else len(csv_data)  # Limit to 5 previews for performance
-            
-            update_preview_progress(20, "generating previews")
-            
-            for idx, row in enumerate(csv_data[:max_previews]):
-                # Calculate progress - spread from 20% to 90%
-                current_progress = 20 + (70 * (idx / max(1, max_previews - 1)))
-                update_preview_progress(current_progress, f"generating image {idx+1}/{max_previews}")
-                
-                try:
-                    # Create a copy of template for each row
-                    img = template_img.copy()
-                    # Ensure image is in RGB or RGBA mode for consistent processing
-                    if img.mode not in ('RGB', 'RGBA'):
-                        img = img.convert('RGBA')
-                    draw = ImageDraw.Draw(img)
-                    
-                    # Process each box (can be text or image)
-                    for box in boxes:
-                        column = box.get('column')
-                        
-                        if column not in row:
-                            logger.warning(f"Column '{column}' not found in CSV row {idx}")
-                            continue
-                        
-                        x = float(box.get('x', 0))
-                        y = float(box.get('y', 0))
-                        width = float(box.get('width', 100))
-                        height = float(box.get('height', 100))
-                        
-                        # Check if it's an image box
-                        if box.get('isImage', False):
-                            image_url = row[column]
-                            if image_url:  # Only process if URL is provided
-                                try:
-                                    # For image boxes, use the dedicated function
-                                    result = draw_image_box(draw, box, image_url, img.width, img.height)
-                                    if result:
-                                        if len(result) == 3: # If mask is returned
-                                            overlay, pos, mask = result
-                                            # Ensure overlay is RGBA before pasting with mask
-                                            if overlay.mode != 'RGBA':
-                                                overlay = overlay.convert('RGBA')
-                                            # Paste using the mask
-                                            img.paste(overlay, pos, mask)
-                                        else: # No mask
-                                            overlay, pos = result
-                                            # Ensure overlay is compatible with base image mode
-                                            if img.mode == 'RGBA' and overlay.mode != 'RGBA':
-                                                overlay = overlay.convert('RGBA')
-                                            elif img.mode == 'RGB' and overlay.mode != 'RGB':
-                                                overlay = overlay.convert('RGB')
-                                            img.paste(overlay, pos)
-                                    else:
-                                        # Draw error indication
-                                        draw.rectangle([(x, y), (x + width, y + height)], outline='red', width=2)
-                                        draw.text((x + 5, y + 5), "Image Error", fill='red', font=ImageFont.truetype(DEFAULT_FONT, 12))
-                                except Exception as e:
-                                    logger.error(f"Error drawing image from {image_url}: {str(e)}")
-                                    # Draw error box
-                                    draw.rectangle([(x, y), (x + width, y + height)], outline='red', width=2)
-                                    draw.text((x + 5, y + 5), f"Error: {str(e)[:30]}...", fill='red', font=ImageFont.truetype(DEFAULT_FONT, 12))
-                        else:
-                            # It's a text box
-                            if row[column]:  # Only draw if text is provided
-                                # Handle text styling
-                                font_size = int(box.get('fontSize', 24))
-                                font_family = box.get('fontFamily', 'Arial')
-                                # Convert hex to RGB color
-                                color_hex = box.get('color', '#000000')
-                                if not color_hex.startswith('#'):
-                                    color_hex = '#000000'
-                                color = tuple(int(color_hex.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
-                                
-                                # Handle text styling
-                                bold = box.get('bold', False)
-                                italic = box.get('italic', False)
-                                underline = box.get('underline', False)
-                                strikethrough = box.get('strikethrough', False)
-                                align = box.get('align', 'left')
-                                
-                                # Create a modified box with all required parameters for draw_text_box
-                                text_box = {
-                                    'x': x,
-                                    'y': y,
-                                    'width': width,
-                                    'height': height,
-                                    'fontSize': font_size,
-                                    'fontFamily': font_family,
-                                    'color': color_hex,
-                                    'bold': str(bold).lower(),
-                                    'italic': str(italic).lower(),
-                                    'underline': str(underline).lower(),
-                                    'strikethrough': str(strikethrough).lower(),
-                                    'align': align
-                                }
-                                
-                                draw_text_box(draw, text_box, row[column], img.width, img.height)
-                    
-                    # Save preview image
-                    preview_filename = f'preview_{idx}_{int(datetime.now().timestamp() * 1000)}.png'
-                    preview_path = os.path.join('static', 'previews', preview_filename)
-                    
-                    try:
-                        img.save(preview_path)
-                        logger.info(f"Preview image saved: {preview_path}")
-                        
-                        # Add URL to list
-                        preview_url = url_for('static', filename=f'previews/{preview_filename}', _external=False) + f"?v={int(datetime.now().timestamp())}"
-                        preview_urls.append(preview_url)
-                    except Exception as e:
-                        logger.error(f"Error saving preview image {preview_path}: {str(e)}")
-                except Exception as e:
-                    logger.error(f"Error processing preview for row {idx}: {str(e)}")
-                    traceback.print_exc()
-            
-            update_preview_progress(95, "finalizing")
-            time.sleep(0.5)  # Short delay to ensure frontend gets final progress update
-            update_preview_progress(100, "complete")
-            
-            # Create a simple dict first, then use Flask's jsonify
-            result_dict = {
-                'preview_urls': preview_urls,
-                'message': f'Generated {len(preview_urls)} preview images'
-            }
-            
-            logger.info(f"Preview generation complete: {len(preview_urls)} images. Result: {result_dict}")
-            
-            # Use a try block to catch any JSON serialization issues
-            try:
-                return jsonify(result_dict)
-            except Exception as json_error:
-                logger.error(f"JSON serialization error: {str(json_error)}")
-                # Fall back to a simpler response
-                return jsonify({
-                    'preview_urls': [],
-                    'error': f'Server error: Failed to serialize response: {str(json_error)}'
-                }), 500
-            
-        except Exception as e:
-            logger.error(f"Error in preview processing: {str(e)}")
-            traceback.print_exc()
+        template_path = os.path.join(app.config['UPLOAD_FOLDER'], template_filename)
+        if not os.path.exists(template_path):
             reset_preview_progress()
-            return jsonify({'error': str(e)}), 500
-    
+            return jsonify({'error': f'Template file not found: {template_filename}'}), 404
+        
+        update_preview_progress(10, "preparing")
+        
+        preview_dir = os.path.join('static', 'previews')
+        os.makedirs(preview_dir, exist_ok=True)
+        # Clear previous previews
+        clear_directory(preview_dir, pattern="preview_*.png")
+        
+        update_preview_progress(15, "loading template")
+        template_img = Image.open(template_path)
+        
+        # Generate preview images
+        preview_urls = []
+        max_previews = min(len(csv_data), 10) if len(csv_data) > 10 else len(csv_data)
+        
+        update_preview_progress(20, "generating previews")
+        
+        for idx, row in enumerate(csv_data[:max_previews]):
+            # Calculate progress - spread from 20% to 90%
+            current_progress = 20 + (70 * (idx / max(1, max_previews - 1)))
+            update_preview_progress(current_progress, f"generating image {idx+1}/{max_previews}")
+            
+            # Create a copy of template for each row
+            img = template_img.copy()
+            # Ensure image is in RGB or RGBA mode for consistent processing
+            if img.mode not in ('RGB', 'RGBA'):
+                img = img.convert('RGBA')
+            draw = ImageDraw.Draw(img)
+            
+            # Process each box (can be text or image)
+            for box in boxes:
+                column = box.get('column')
+                
+                if column not in row:
+                    print(f"Warning: Column '{column}' not found in CSV row {idx}")
+                    continue
+                
+                x = float(box.get('x', 0))
+                y = float(box.get('y', 0))
+                width = float(box.get('width', 100))
+                height = float(box.get('height', 100))
+                
+                # Check if it's an image box
+                if box.get('isImage', False):
+                    image_url = row[column]
+                    if image_url:  # Only process if URL is provided
+                        try:
+                            # For image boxes, use the dedicated function
+                            result = draw_image_box(draw, box, image_url, img.width, img.height)
+                            if result:
+                                if len(result) == 3: # If mask is returned
+                                    overlay, pos, mask = result
+                                    # Ensure overlay is RGBA before pasting with mask
+                                    if overlay.mode != 'RGBA':
+                                        overlay = overlay.convert('RGBA')
+                                    # Paste using the mask
+                                    img.paste(overlay, pos, mask)
+                                else: # No mask
+                                    overlay, pos = result
+                                    # Ensure overlay is compatible with base image mode
+                                    if img.mode == 'RGBA' and overlay.mode != 'RGBA':
+                                        overlay = overlay.convert('RGBA')
+                                    elif img.mode == 'RGB' and overlay.mode != 'RGB':
+                                        overlay = overlay.convert('RGB')
+                                    img.paste(overlay, pos)
+                            else:
+                                # Draw error indication
+                                draw.rectangle([(x, y), (x + width, y + height)], outline='red', width=2)
+                                draw.text((x + 5, y + 5), "Image Error", fill='red', font=ImageFont.truetype(DEFAULT_FONT, 12))
+                        except Exception as e:
+                            print(f"Error drawing image from {image_url}: {str(e)}")
+                            # Draw error box
+                            draw.rectangle([(x, y), (x + width, y + height)], outline='red', width=2)
+                            draw.text((x + 5, y + 5), f"Error: {str(e)[:30]}...", fill='red', font=ImageFont.truetype(DEFAULT_FONT, 12))
+                else:
+                    # It's a text box
+                    if row[column]:  # Only draw if text is provided
+                        # Handle text styling
+                        font_size = int(box.get('fontSize', 24))
+                        font_family = box.get('fontFamily', 'Arial')
+                        # Convert hex to RGB color
+                        color_hex = box.get('color', '#000000')
+                        if not color_hex.startswith('#'):
+                            color_hex = '#000000'
+                        color = tuple(int(color_hex.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
+                        
+                        # Handle text styling
+                        bold = box.get('bold', False)
+                        italic = box.get('italic', False)
+                        underline = box.get('underline', False)
+                        strikethrough = box.get('strikethrough', False)
+                        align = box.get('align', 'left')
+                        
+                        # Create a modified box with all required parameters for draw_text_box
+                        text_box = {
+                            'x': x,
+                            'y': y,
+                            'width': width,
+                            'height': height,
+                            'fontSize': font_size,
+                            'fontFamily': font_family,
+                            'color': color_hex,
+                            'bold': str(bold).lower(),
+                            'italic': str(italic).lower(),
+                            'underline': str(underline).lower(),
+                            'strikethrough': str(strikethrough).lower(),
+                            'align': align
+                        }
+                        
+                        draw_text_box(draw, text_box, row[column], img.width, img.height)
+            
+            # Save preview image
+            preview_filename = f'preview_{idx}_{int(datetime.now().timestamp() * 1000)}.png'
+            preview_path = os.path.join('static', 'previews', preview_filename)
+            img.save(preview_path)
+            
+            # Add URL to list
+            preview_url = url_for('static', filename=f'previews/{preview_filename}', _external=False) + f"?v={int(datetime.now().timestamp())}"
+            preview_urls.append(preview_url)
+        
+        update_preview_progress(95, "finalizing")
+        time.sleep(0.5)  # Short delay to ensure frontend gets final progress update
+        update_preview_progress(100, "complete")
+        
+        # Prepare the result as a simple Python dictionary 
+        result = {
+            'preview_urls': preview_urls,
+            'message': f'Generated {len(preview_urls)} preview images'
+        }
+        
+        # Use Flask's jsonify with a try-except to handle any serialization issues
+        try:
+            return jsonify(result)
+        except Exception as e:
+            print(f"Error serializing response: {str(e)}")
+            # Fallback to a simpler response
+            return jsonify({
+                'error': 'Error generating preview',
+                'message': str(e)
+            }), 500
+            
     except Exception as e:
-        logger.error(f"Unhandled error in preview_combined_images: {str(e)}")
-        traceback.print_exc()
+        print(f"Error generating preview: {str(e)}")
         reset_preview_progress()
         return jsonify({'error': str(e)}), 500
 
@@ -670,34 +570,23 @@ def download_individual():
     reset_download_progress()
     update_download_progress(5, "starting")
     
+    data = request.get_json()
+    
+    if not data or 'preview_urls' not in data:
+        reset_download_progress()
+        return jsonify({'error': 'No preview URLs provided'}), 400
+    
+    preview_urls = data.get('preview_urls', [])
+    if not preview_urls:
+        reset_download_progress()
+        return jsonify({'error': 'Empty preview URLs list'}), 400
+    
     try:
-        data = request.get_json()
-        
-        if not data or 'preview_urls' not in data:
-            logger.error("Missing preview_urls in download_individual request")
-            reset_download_progress()
-            return jsonify({'error': 'No preview URLs provided'}), 400
-        
-        preview_urls = data.get('preview_urls', [])
-        if not preview_urls:
-            logger.error("Empty preview_urls list in download_individual request")
-            reset_download_progress()
-            return jsonify({'error': 'Empty preview URLs list'}), 400
-        
-        logger.info(f"Preparing download for {len(preview_urls)} images")
-        
         # Create a directory to store the images with timestamp and unique ID
         timestamp = int(datetime.now().timestamp())
         unique_id = generate_unique_id()
         download_dir = os.path.join('static', 'downloads', f'batch_{timestamp}_{unique_id}')
-        
-        try:
-            os.makedirs(download_dir, exist_ok=True)
-            logger.info(f"Created download directory: {download_dir}")
-        except Exception as e:
-            logger.error(f"Error creating download directory: {str(e)}")
-            reset_download_progress()
-            return jsonify({'error': f'Failed to create download directory: {str(e)}'}), 500
+        os.makedirs(download_dir, exist_ok=True)
         
         update_download_progress(15, "preparing files")
         
@@ -710,58 +599,32 @@ def download_individual():
             current_progress = 15 + (70 * (idx / max(1, total_urls - 1)))
             update_download_progress(current_progress, f"preparing file {idx+1}/{total_urls}")
             
-            try:
-                # Extract filename from URL
-                filename = os.path.basename(url.split('?')[0])
-                src_path = os.path.join('static', 'previews', filename)
-                
-                if not os.path.exists(src_path):
-                    logger.warning(f"Source file not found: {src_path}, skipping")
-                    continue
-                
-                # Create a more user-friendly filename
-                dst_filename = f'image_{idx+1}.png'
-                dst_path = os.path.join(download_dir, dst_filename)
-                
-                # Copy the file
-                shutil.copy2(src_path, dst_path)
-                logger.info(f"Copied file: {src_path} -> {dst_path}")
-                file_paths.append(dst_path)
-            except Exception as e:
-                logger.error(f"Error processing file {idx}: {str(e)}")
-                # Continue with other files instead of failing completely
-        
-        if not file_paths:
-            logger.error("No files were successfully copied")
-            reset_download_progress()
-            return jsonify({'error': 'Failed to copy any preview files'}), 500
+            # Extract filename from URL
+            filename = os.path.basename(url.split('?')[0])
+            src_path = os.path.join('static', 'previews', filename)
+            
+            # Create a more user-friendly filename
+            dst_filename = f'image_{idx+1}.png'
+            dst_path = os.path.join(download_dir, dst_filename)
+            
+            # Copy the file
+            shutil.copy2(src_path, dst_path)
+            file_paths.append(dst_path)
         
         update_download_progress(90, "finalizing")
         time.sleep(0.5)  # Short delay to ensure frontend gets final progress update
         update_download_progress(100, "complete")
         
         # Return the download directory information
-        result = {
+        return jsonify({
             'download_dir': download_dir,
             'file_count': len(file_paths),
             'timestamp': timestamp,
             'unique_id': unique_id
-        }
-        
-        logger.info(f"Download preparation complete: {result}")
-        
-        try:
-            return jsonify(result)
-        except Exception as json_error:
-            logger.error(f"JSON serialization error in download_individual: {str(json_error)}")
-            # Return a simplified response
-            return jsonify({
-                'error': f'Server error: Failed to serialize response: {str(json_error)}'
-            }), 500
+        })
         
     except Exception as e:
-        logger.error(f"Unhandled error in download_individual: {str(e)}")
-        traceback.print_exc()
+        print(f"Error preparing downloads: {str(e)}")
         reset_download_progress()
         return jsonify({'error': str(e)}), 500
 
@@ -773,34 +636,31 @@ def delayed_file_cleanup(zip_path, download_dir, delay=30):
         try:
             # Check if the file still exists before trying to remove it
             if os.path.exists(zip_path):
-                logger.info(f"Delayed cleanup: Removing zip file {zip_path}")
+                print(f"Delayed cleanup: Removing zip file {zip_path}")
                 os.remove(zip_path)
             else:
-                logger.info(f"Zip file {zip_path} already removed")
+                print(f"Zip file {zip_path} already removed")
                 
             if os.path.exists(download_dir):
-                logger.info(f"Delayed cleanup: Removing directory {download_dir}")
+                print(f"Delayed cleanup: Removing directory {download_dir}")
                 shutil.rmtree(download_dir)
             else:
-                logger.info(f"Directory {download_dir} already removed")
+                print(f"Directory {download_dir} already removed")
         except Exception as e:
-            logger.error(f"Error in delayed cleanup: {str(e)}")
+            print(f"Error in delayed cleanup: {str(e)}")
     
     # Start a new thread to handle the cleanup
     cleanup_thread = threading.Thread(target=cleanup_task)
     cleanup_thread.daemon = True  # Allow the thread to exit when the main program exits
     cleanup_thread.start()
-    logger.info(f"Scheduled cleanup for {zip_path} in {delay} seconds")
+    print(f"Scheduled cleanup for {zip_path} in {delay} seconds")
 
 @app.route('/download_batch/<int:timestamp>/<string:unique_id>')
 def download_batch(timestamp, unique_id):
     """Serve a batch zip file for download with unique identifier"""
     download_dir = os.path.join('static', 'downloads', f'batch_{timestamp}_{unique_id}')
     
-    logger.info(f"Download request for batch: timestamp={timestamp}, unique_id={unique_id}")
-    
     if not os.path.exists(download_dir):
-        logger.error(f"Download directory not found: {download_dir}")
         return "Download batch not found", 404
     
     # Create a zip file with unique name
@@ -810,45 +670,23 @@ def download_batch(timestamp, unique_id):
     try:
         # Only create the zip if it doesn't already exist
         if not os.path.exists(zip_path):
-            logger.info(f"Creating new zip file: {zip_path}")
-            
-            # Get the list of files to include in the zip
-            files_to_zip = []
-            for root, dirs, files in os.walk(download_dir):
-                for file in files:
-                    file_path = os.path.join(root, file)
-                    files_to_zip.append((file_path, os.path.relpath(file_path, download_dir)))
-            
-            if not files_to_zip:
-                logger.error(f"No files found in download directory: {download_dir}")
-                return "No files to download", 404
-            
-            # Create the zip file
             with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                for file_path, arcname in files_to_zip:
-                    try:
+                for root, dirs, files in os.walk(download_dir):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        arcname = os.path.relpath(file_path, download_dir)
                         zipf.write(file_path, arcname=arcname)
-                    except Exception as e:
-                        logger.error(f"Error adding file to zip: {file_path}: {str(e)}")
-            
-            logger.info(f"Created zip file: {zip_path} with {len(files_to_zip)} files")
+            print(f"Created zip file: {zip_path}")
         else:
-            logger.info(f"Using existing zip file: {zip_path}")
+            print(f"Using existing zip file: {zip_path}")
         
         # Use delayed cleanup instead of immediate cleanup
         delayed_file_cleanup(zip_path, download_dir)
         
-        # Check that the zip file exists and has a non-zero size
-        if not os.path.exists(zip_path) or os.path.getsize(zip_path) == 0:
-            logger.error(f"Zip file not created successfully: {zip_path}")
-            return "Error creating download file", 500
-        
-        logger.info(f"Sending zip file: {zip_path} with name {zip_filename}")
         return send_file(zip_path, as_attachment=True, download_name=zip_filename)
         
     except Exception as e:
-        logger.error(f"Error creating or sending zip file: {str(e)}")
-        traceback.print_exc()
+        print(f"Error creating or sending zip file: {e}")
         # Don't attempt cleanup here - let the delayed cleanup handle it
         return "Error creating download file.", 500
 
@@ -899,57 +737,6 @@ def update_download_progress(percent, status="processing"):
     download_progress["percent"] = percent
     download_progress["status"] = status
 
-def ensure_dir_exists(path):
-    """Ensure a directory exists and is writable, with detailed logging"""
-    try:
-        # First, check if the path already exists
-        if os.path.exists(path):
-            if os.path.isdir(path):
-                # Check if it's writable
-                if os.access(path, os.W_OK):
-                    logger.info(f"Directory exists and is writable: {path}")
-                    return True
-                else:
-                    logger.warning(f"Directory exists but is not writable: {path}")
-                    # Try to make it writable
-                    try:
-                        os.chmod(path, 0o755)  # rwxr-xr-x
-                        logger.info(f"Updated permissions for directory: {path}")
-                        return True
-                    except Exception as e:
-                        logger.error(f"Failed to update permissions: {str(e)}")
-            else:
-                logger.error(f"Path exists but is not a directory: {path}")
-                return False
-        
-        # Path doesn't exist, so create it
-        os.makedirs(path, exist_ok=True)
-        logger.info(f"Created directory: {path}")
-        return True
-    except Exception as e:
-        logger.error(f"Error ensuring directory exists {path}: {str(e)}")
-        return False
-
-# Update the ensure_directories_exist function
-def ensure_directories_exist():
-    """Ensure all required directories exist"""
-    directories = [
-        app.config['UPLOAD_FOLDER'],
-        os.path.join('static', 'previews'),
-        os.path.join('static', 'downloads'),
-        FONTS_DIR
-    ]
-    
-    logger.info("Checking required directories...")
-    
-    for directory in directories:
-        ensure_dir_exists(directory)
-
-# Call this function at startup
-ensure_directories_exist()
-
 if __name__ == '__main__':
-    # For development
-    app.run(debug=True) 
-    # For production on Hostinger
-    # app.run(host='0.0.0.0', port=5000) 
+    # For production on Render
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 10000))) 

@@ -1166,95 +1166,62 @@ document.addEventListener('DOMContentLoaded', () => {
                 })
             });
 
-            let data;
-            try {
-                const responseText = await response.text(); // Get raw text first
-                
-                try {
-                    // Try to parse as JSON
-                    data = JSON.parse(responseText);
-                } catch (jsonError) {
-                    console.error('JSON parse error:', jsonError);
-                    console.error('Response text:', responseText);
-                    throw new Error(`Failed to parse server response as JSON: ${jsonError.message}`);
-                }
-                
-                if (!response.ok) {
-                    throw new Error(data.error || `Server error: ${response.status} ${response.statusText}`);
-                }
-
-                if (!data.preview_urls || !Array.isArray(data.preview_urls)) {
-                    console.error('Invalid response data:', data);
-                    throw new Error('Server returned invalid data structure for preview URLs');
-                }
-                
-                displayStatus(`Generated ${data.preview_urls.length} images. Preparing download...`);
-                updateProgress(96, 'combinedDownloadProgress');
-                
-            } catch (error) {
-                console.error('Error processing preview response:', error);
-                throw error;
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to generate preview images');
             }
 
+            const data = await response.json();
+            
+            displayStatus(`Generated ${data.preview_urls.length} images. Preparing download...`);
+            updateProgress(96, 'combinedDownloadProgress');
+            
             // Prepare images for individual download
-            try {
-                const prepareResponse = await fetch('/download_individual', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        preview_urls: data.preview_urls
-                    })
-                });
+            const prepareResponse = await fetch('/download_individual', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    preview_urls: data.preview_urls
+                })
+            });
 
-                let downloadData;
-                try {
-                    const prepareResponseText = await prepareResponse.text();
-                    downloadData = JSON.parse(prepareResponseText);
-                } catch (jsonError) {
-                    console.error('Error parsing download response:', jsonError);
-                    throw new Error(`Failed to parse download response: ${jsonError.message}`);
-                }
-
-                if (!prepareResponse.ok) {
-                    throw new Error(downloadData.error || 'Failed to prepare images for download');
-                }
-
-                updateProgress(98, 'combinedDownloadProgress');
-                
-                // Short delay to show almost complete
-                await new Promise(resolve => setTimeout(resolve, 500));
-                
-                // Only set to 100% right before initiating download
-                updateProgress(100, 'combinedDownloadProgress');
-                
-                // Initiate direct download of the prepared zip file
-                // Use both timestamp and unique_id in the URL
-                const downloadUrl = `/download_batch/${downloadData.timestamp}/${downloadData.unique_id}`;
-                window.location.href = downloadUrl;
-                
-                displayStatus(`Download initiated for ${downloadData.file_count} images.`);
-
-                // Re-enable the button after a short delay to allow download to start
-                setTimeout(() => {
-                    const btn = document.getElementById('combinedDownloadBtn');
-                    if (btn) {
-                        // Use the originalText variable captured at the start
-                        btn.textContent = originalText;
-                        btn.disabled = false;
-                        console.log('Download button re-enabled.');
-                    }
-                    // Keep progress bar visible for a moment after download starts
-                    setTimeout(() => {
-                        hideProgressBar('combinedDownloadProgress');
-                    }, 2000);
-                }, 1500); // Re-enable after 1.5 seconds
-
-            } catch (error) {
-                console.error('Error preparing images for download:', error);
-                throw error;
+            if (!prepareResponse.ok) {
+                const errorData = await prepareResponse.json();
+                throw new Error(errorData.error || 'Failed to prepare images for download');
             }
+
+            const downloadData = await prepareResponse.json();
+            updateProgress(98, 'combinedDownloadProgress');
+            
+            // Short delay to show almost complete
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Only set to 100% right before initiating download
+            updateProgress(100, 'combinedDownloadProgress');
+            
+            // Initiate direct download of the prepared zip file
+            // Use both timestamp and unique_id in the URL
+            const downloadUrl = `/download_batch/${downloadData.timestamp}/${downloadData.unique_id}`;
+            window.location.href = downloadUrl;
+            
+            displayStatus(`Download initiated for ${downloadData.file_count} images.`);
+
+            // Re-enable the button after a short delay to allow download to start
+            setTimeout(() => {
+                const btn = document.getElementById('combinedDownloadBtn');
+                if (btn) {
+                    // Use the originalText variable captured at the start
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                    console.log('Download button re-enabled.');
+                }
+                // Keep progress bar visible for a moment after download starts
+                setTimeout(() => {
+                    hideProgressBar('combinedDownloadProgress');
+                }, 2000);
+            }, 1500); // Re-enable after 1.5 seconds
 
         } catch (error) {
             displayStatus('Error downloading preview images: ' + error.message, true);
