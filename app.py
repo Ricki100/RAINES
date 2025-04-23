@@ -17,6 +17,15 @@ import random
 import string
 import threading
 import time
+import logging
+import traceback
+import base64
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, 
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    handlers=[logging.StreamHandler()])
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -27,10 +36,20 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 app.config['SECRET_KEY'] = os.urandom(24)  # Generate a random secret key
 
 # Ensure required directories exist
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-os.makedirs(os.path.join('static', 'previews'), exist_ok=True)
-os.makedirs(os.path.join('static', 'downloads'), exist_ok=True)
-os.makedirs(os.path.join('static', 'fonts'), exist_ok=True)
+required_dirs = [
+    app.config['UPLOAD_FOLDER'],
+    os.path.join('static', 'previews'),
+    os.path.join('static', 'downloads'),
+    os.path.join('static', 'fonts')
+]
+
+# Make sure all required directories exist
+for directory in required_dirs:
+    try:
+        os.makedirs(directory, exist_ok=True)
+        logger.info(f"Ensured directory exists: {directory}")
+    except Exception as e:
+        logger.error(f"Error creating directory {directory}: {str(e)}")
 
 # Font management
 FONTS_DIR = os.path.join('static', 'fonts')
@@ -347,44 +366,104 @@ def draw_image_box(draw, box, image_url, img_width, img_height):
         box_width = float(box.get('width', img_width - x))
         box_height = float(box.get('height', img_height - y))
         
+        logger.info(f"Processing image box: URL={image_url[:50]}..., box={x},{y},{box_width},{box_height}")
+        
         try:
-            # Download and open the image from URL
-            response = requests.get(image_url, timeout=5)
-            if response.status_code == 200:
-                overlay_img = Image.open(BytesIO(response.content))
-                
-                # Calculate dimensions while maintaining aspect ratio
-                overlay_width, overlay_height = overlay_img.size
-                scale = min(box_width/overlay_width, box_height/overlay_height)
-                new_width = int(overlay_width * scale)
-                new_height = int(overlay_height * scale)
-                
-                # Resize the overlay image
-                overlay_img = overlay_img.resize((new_width, new_height), Image.Resampling.LANCZOS)
-                
-                # Position image at exact box coordinates - no centering adjustment
-                # This ensures the image appears exactly where the box is placed
-                paste_x = int(x)
-                paste_y = int(y)
-                
-                # If the overlay has transparency, use it as mask
-                if overlay_img.mode in ('RGBA', 'LA'):
-                    # Extract the alpha channel as mask
-                    mask = overlay_img.split()[-1] if overlay_img.mode == 'RGBA' else overlay_img.split()[1]
-                    # Convert to RGB for pasting
-                    overlay_img = overlay_img.convert('RGB')
-                    return (overlay_img, (paste_x, paste_y), mask)
-                else:
-                    return (overlay_img, (paste_x, paste_y))
+            # Try to download the image - handle various URL formats
+            if image_url.startswith('data:image'):
+                # It's a data URL
+                logger.info("Processing data URL image")
+                try:
+                    # Extract base64 data
+                    image_data = image_url.split(',')[1]
+                    image_bytes = BytesIO(base64.b64decode(image_data))
+                    overlay_img = Image.open(image_bytes)
+                except Exception as e:
+                    logger.error(f"Error processing data URL: {str(e)}")
+                    raise
+            elif image_url.startswith(('http://', 'https://')):
+                # It's a remote URL
+                logger.info(f"Downloading image from URL: {image_url[:50]}...")
+                try:
+                    response = requests.get(image_url, timeout=10)
+                    if response.status_code != 200:
+                        logger.error(f"HTTP error {response.status_code} for URL: {image_url[:50]}...")
+                        raise ValueError(f"HTTP error {response.status_code}")
                     
+                    image_bytes = BytesIO(response.content)
+                    overlay_img = Image.open(image_bytes)
+                except requests.RequestException as e:
+                    logger.error(f"Request error for URL {image_url[:50]}...: {str(e)}")
+                    raise
+                except Exception as e:
+                    logger.error(f"Error opening image from URL: {str(e)}")
+                    raise
+            else:
+                # Assume it's a local file path
+                logger.info(f"Opening local image: {image_url}")
+                try:
+                    # Check if it's a relative path
+                    if not os.path.isabs(image_url):
+                        image_url = os.path.join(app.config['UPLOAD_FOLDER'], image_url)
+                    
+                    if not os.path.exists(image_url):
+                        logger.error(f"Local image file not found: {image_url}")
+                        raise FileNotFoundError(f"Image not found: {image_url}")
+                    
+                    overlay_img = Image.open(image_url)
+                except Exception as e:
+                    logger.error(f"Error opening local image: {str(e)}")
+                    raise
+            
+            # Calculate dimensions while maintaining aspect ratio
+            overlay_width, overlay_height = overlay_img.size
+            logger.info(f"Original image size: {overlay_width}x{overlay_height}")
+            
+            scale = min(box_width/overlay_width, box_height/overlay_height)
+            new_width = int(overlay_width * scale)
+            new_height = int(overlay_height * scale)
+            
+            logger.info(f"Resizing to: {new_width}x{new_height}")
+            
+            # Resize the overlay image
+            try:
+                overlay_img = overlay_img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            except Exception as e:
+                logger.error(f"Error resizing image: {str(e)}")
+                # Try a simpler resampling method
+                try:
+                    overlay_img = overlay_img.resize((new_width, new_height), Image.Resampling.NEAREST)
+                except Exception as e2:
+                    logger.error(f"Error with fallback resize: {str(e2)}")
+                    raise
+            
+            # Position image at exact box coordinates - no centering adjustment
+            # This ensures the image appears exactly where the box is placed
+            paste_x = int(x)
+            paste_y = int(y)
+            
+            # If the overlay has transparency, use it as mask
+            if overlay_img.mode in ('RGBA', 'LA'):
+                # Extract the alpha channel as mask
+                mask = overlay_img.split()[-1] if overlay_img.mode == 'RGBA' else overlay_img.split()[1]
+                # Convert to RGB for pasting
+                overlay_img = overlay_img.convert('RGB')
+                logger.info("Using transparency mask for image")
+                return (overlay_img, (paste_x, paste_y), mask)
+            else:
+                logger.info("Using direct paste for image (no transparency)")
+                return (overlay_img, (paste_x, paste_y))
+                
         except Exception as e:
-            print(f"Error processing image URL: {str(e)}")
+            logger.error(f"Error processing image URL: {str(e)}")
             # Draw an error placeholder
             draw.rectangle([x, y, x + box_width, y + box_height], outline='red', width=2)
             draw.text((x + 10, y + box_height/2), f"Image Error: {str(e)[:50]}...", fill='red')
+            return None
             
     except Exception as e:
-        print(f"Error drawing image box: {str(e)}")
+        logger.error(f"Error drawing image box: {str(e)}")
+        return None
 
 @app.route('/preview_combined_images', methods=['POST'])
 def preview_combined_images():
@@ -393,156 +472,193 @@ def preview_combined_images():
     reset_preview_progress()
     update_preview_progress(5, "starting")
     
-    data = request.get_json()
-    
-    if not data:
-        reset_preview_progress()
-        return jsonify({'error': 'No data received'}), 400
-    
-    template_filename = data.get('template')
-    csv_data = data.get('csv_data', [])
-    boxes = data.get('text_boxes', [])
-    
-    if not template_filename or not csv_data or not boxes:
-        reset_preview_progress()
-        return jsonify({'error': 'Missing required parameters'}), 400
-    
     try:
-        template_path = os.path.join(app.config['UPLOAD_FOLDER'], template_filename)
-        if not os.path.exists(template_path):
+        data = request.get_json()
+        
+        if not data:
+            logger.error("No data received in preview_combined_images")
             reset_preview_progress()
-            return jsonify({'error': f'Template file not found: {template_filename}'}), 404
+            return jsonify({'error': 'No data received'}), 400
         
-        update_preview_progress(10, "preparing")
+        template_filename = data.get('template')
+        csv_data = data.get('csv_data', [])
+        boxes = data.get('text_boxes', [])
         
-        preview_dir = os.path.join('static', 'previews')
-        os.makedirs(preview_dir, exist_ok=True)
-        # Clear previous previews
-        clear_directory(preview_dir, pattern="preview_*.png")
+        logger.info(f"Preview request received: template={template_filename}, csv_rows={len(csv_data)}, boxes={len(boxes)}")
         
-        update_preview_progress(15, "loading template")
-        template_img = Image.open(template_path)
+        if not template_filename or not csv_data or not boxes:
+            logger.error(f"Missing required parameters: template={template_filename}, csv_rows={len(csv_data)}, boxes={len(boxes)}")
+            reset_preview_progress()
+            return jsonify({'error': 'Missing required parameters'}), 400
         
-        # Generate preview images
-        preview_urls = []
-        max_previews = min(len(csv_data), 10) if len(csv_data) > 10 else len(csv_data)
-        
-        update_preview_progress(20, "generating previews")
-        
-        for idx, row in enumerate(csv_data[:max_previews]):
-            # Calculate progress - spread from 20% to 90%
-            current_progress = 20 + (70 * (idx / max(1, max_previews - 1)))
-            update_preview_progress(current_progress, f"generating image {idx+1}/{max_previews}")
+        try:
+            template_path = os.path.join(app.config['UPLOAD_FOLDER'], template_filename)
+            if not os.path.exists(template_path):
+                logger.error(f"Template file not found: {template_path}")
+                reset_preview_progress()
+                return jsonify({'error': f'Template file not found: {template_filename}'}), 404
             
-            # Create a copy of template for each row
-            img = template_img.copy()
-            # Ensure image is in RGB or RGBA mode for consistent processing
-            if img.mode not in ('RGB', 'RGBA'):
-                img = img.convert('RGBA')
-            draw = ImageDraw.Draw(img)
+            update_preview_progress(10, "preparing")
             
-            # Process each box (can be text or image)
-            for box in boxes:
-                column = box.get('column')
+            preview_dir = os.path.join('static', 'previews')
+            # Double ensure the directory exists
+            os.makedirs(preview_dir, exist_ok=True)
+            
+            # Clear previous previews
+            try:
+                clear_directory(preview_dir, pattern="preview_*.png")
+                logger.info(f"Cleared previous previews from {preview_dir}")
+            except Exception as e:
+                logger.warning(f"Error clearing directory {preview_dir}: {str(e)}")
+            
+            update_preview_progress(15, "loading template")
+            
+            try:
+                template_img = Image.open(template_path)
+                logger.info(f"Template loaded: {template_path}, size={template_img.size}, mode={template_img.mode}")
+            except Exception as e:
+                logger.error(f"Error opening template image {template_path}: {str(e)}")
+                reset_preview_progress()
+                return jsonify({'error': f'Failed to open template image: {str(e)}'}), 500
+            
+            # Generate preview images
+            preview_urls = []
+            max_previews = min(len(csv_data), 5) if len(csv_data) > 5 else len(csv_data)  # Limit to 5 previews for performance
+            
+            update_preview_progress(20, "generating previews")
+            
+            for idx, row in enumerate(csv_data[:max_previews]):
+                # Calculate progress - spread from 20% to 90%
+                current_progress = 20 + (70 * (idx / max(1, max_previews - 1)))
+                update_preview_progress(current_progress, f"generating image {idx+1}/{max_previews}")
                 
-                if column not in row:
-                    print(f"Warning: Column '{column}' not found in CSV row {idx}")
-                    continue
-                
-                x = float(box.get('x', 0))
-                y = float(box.get('y', 0))
-                width = float(box.get('width', 100))
-                height = float(box.get('height', 100))
-                
-                # Check if it's an image box
-                if box.get('isImage', False):
-                    image_url = row[column]
-                    if image_url:  # Only process if URL is provided
-                        try:
-                            # For image boxes, use the dedicated function
-                            result = draw_image_box(draw, box, image_url, img.width, img.height)
-                            if result:
-                                if len(result) == 3: # If mask is returned
-                                    overlay, pos, mask = result
-                                    # Ensure overlay is RGBA before pasting with mask
-                                    if overlay.mode != 'RGBA':
-                                        overlay = overlay.convert('RGBA')
-                                    # Paste using the mask
-                                    img.paste(overlay, pos, mask)
-                                else: # No mask
-                                    overlay, pos = result
-                                    # Ensure overlay is compatible with base image mode
-                                    if img.mode == 'RGBA' and overlay.mode != 'RGBA':
-                                        overlay = overlay.convert('RGBA')
-                                    elif img.mode == 'RGB' and overlay.mode != 'RGB':
-                                        overlay = overlay.convert('RGB')
-                                    img.paste(overlay, pos)
-                            else:
-                                # Draw error indication
-                                draw.rectangle([(x, y), (x + width, y + height)], outline='red', width=2)
-                                draw.text((x + 5, y + 5), "Image Error", fill='red', font=ImageFont.truetype(DEFAULT_FONT, 12))
-                        except Exception as e:
-                            print(f"Error drawing image from {image_url}: {str(e)}")
-                            # Draw error box
-                            draw.rectangle([(x, y), (x + width, y + height)], outline='red', width=2)
-                            draw.text((x + 5, y + 5), f"Error: {str(e)[:30]}...", fill='red', font=ImageFont.truetype(DEFAULT_FONT, 12))
-                else:
-                    # It's a text box
-                    if row[column]:  # Only draw if text is provided
-                        # Handle text styling
-                        font_size = int(box.get('fontSize', 24))
-                        font_family = box.get('fontFamily', 'Arial')
-                        # Convert hex to RGB color
-                        color_hex = box.get('color', '#000000')
-                        if not color_hex.startswith('#'):
-                            color_hex = '#000000'
-                        color = tuple(int(color_hex.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
+                try:
+                    # Create a copy of template for each row
+                    img = template_img.copy()
+                    # Ensure image is in RGB or RGBA mode for consistent processing
+                    if img.mode not in ('RGB', 'RGBA'):
+                        img = img.convert('RGBA')
+                    draw = ImageDraw.Draw(img)
+                    
+                    # Process each box (can be text or image)
+                    for box in boxes:
+                        column = box.get('column')
                         
-                        # Handle text styling
-                        bold = box.get('bold', False)
-                        italic = box.get('italic', False)
-                        underline = box.get('underline', False)
-                        strikethrough = box.get('strikethrough', False)
-                        align = box.get('align', 'left')
+                        if column not in row:
+                            logger.warning(f"Column '{column}' not found in CSV row {idx}")
+                            continue
                         
-                        # Create a modified box with all required parameters for draw_text_box
-                        text_box = {
-                            'x': x,
-                            'y': y,
-                            'width': width,
-                            'height': height,
-                            'fontSize': font_size,
-                            'fontFamily': font_family,
-                            'color': color_hex,
-                            'bold': str(bold).lower(),
-                            'italic': str(italic).lower(),
-                            'underline': str(underline).lower(),
-                            'strikethrough': str(strikethrough).lower(),
-                            'align': align
-                        }
+                        x = float(box.get('x', 0))
+                        y = float(box.get('y', 0))
+                        width = float(box.get('width', 100))
+                        height = float(box.get('height', 100))
                         
-                        draw_text_box(draw, text_box, row[column], img.width, img.height)
+                        # Check if it's an image box
+                        if box.get('isImage', False):
+                            image_url = row[column]
+                            if image_url:  # Only process if URL is provided
+                                try:
+                                    # For image boxes, use the dedicated function
+                                    result = draw_image_box(draw, box, image_url, img.width, img.height)
+                                    if result:
+                                        if len(result) == 3: # If mask is returned
+                                            overlay, pos, mask = result
+                                            # Ensure overlay is RGBA before pasting with mask
+                                            if overlay.mode != 'RGBA':
+                                                overlay = overlay.convert('RGBA')
+                                            # Paste using the mask
+                                            img.paste(overlay, pos, mask)
+                                        else: # No mask
+                                            overlay, pos = result
+                                            # Ensure overlay is compatible with base image mode
+                                            if img.mode == 'RGBA' and overlay.mode != 'RGBA':
+                                                overlay = overlay.convert('RGBA')
+                                            elif img.mode == 'RGB' and overlay.mode != 'RGB':
+                                                overlay = overlay.convert('RGB')
+                                            img.paste(overlay, pos)
+                                    else:
+                                        # Draw error indication
+                                        draw.rectangle([(x, y), (x + width, y + height)], outline='red', width=2)
+                                        draw.text((x + 5, y + 5), "Image Error", fill='red', font=ImageFont.truetype(DEFAULT_FONT, 12))
+                                except Exception as e:
+                                    logger.error(f"Error drawing image from {image_url}: {str(e)}")
+                                    # Draw error box
+                                    draw.rectangle([(x, y), (x + width, y + height)], outline='red', width=2)
+                                    draw.text((x + 5, y + 5), f"Error: {str(e)[:30]}...", fill='red', font=ImageFont.truetype(DEFAULT_FONT, 12))
+                        else:
+                            # It's a text box
+                            if row[column]:  # Only draw if text is provided
+                                # Handle text styling
+                                font_size = int(box.get('fontSize', 24))
+                                font_family = box.get('fontFamily', 'Arial')
+                                # Convert hex to RGB color
+                                color_hex = box.get('color', '#000000')
+                                if not color_hex.startswith('#'):
+                                    color_hex = '#000000'
+                                color = tuple(int(color_hex.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
+                                
+                                # Handle text styling
+                                bold = box.get('bold', False)
+                                italic = box.get('italic', False)
+                                underline = box.get('underline', False)
+                                strikethrough = box.get('strikethrough', False)
+                                align = box.get('align', 'left')
+                                
+                                # Create a modified box with all required parameters for draw_text_box
+                                text_box = {
+                                    'x': x,
+                                    'y': y,
+                                    'width': width,
+                                    'height': height,
+                                    'fontSize': font_size,
+                                    'fontFamily': font_family,
+                                    'color': color_hex,
+                                    'bold': str(bold).lower(),
+                                    'italic': str(italic).lower(),
+                                    'underline': str(underline).lower(),
+                                    'strikethrough': str(strikethrough).lower(),
+                                    'align': align
+                                }
+                                
+                                draw_text_box(draw, text_box, row[column], img.width, img.height)
+                    
+                    # Save preview image
+                    preview_filename = f'preview_{idx}_{int(datetime.now().timestamp() * 1000)}.png'
+                    preview_path = os.path.join('static', 'previews', preview_filename)
+                    
+                    try:
+                        img.save(preview_path)
+                        logger.info(f"Preview image saved: {preview_path}")
+                        
+                        # Add URL to list
+                        preview_url = url_for('static', filename=f'previews/{preview_filename}', _external=False) + f"?v={int(datetime.now().timestamp())}"
+                        preview_urls.append(preview_url)
+                    except Exception as e:
+                        logger.error(f"Error saving preview image {preview_path}: {str(e)}")
+                except Exception as e:
+                    logger.error(f"Error processing preview for row {idx}: {str(e)}")
+                    traceback.print_exc()
             
-            # Save preview image
-            preview_filename = f'preview_{idx}_{int(datetime.now().timestamp() * 1000)}.png'
-            preview_path = os.path.join('static', 'previews', preview_filename)
-            img.save(preview_path)
+            update_preview_progress(95, "finalizing")
+            time.sleep(0.5)  # Short delay to ensure frontend gets final progress update
+            update_preview_progress(100, "complete")
             
-            # Add URL to list
-            preview_url = url_for('static', filename=f'previews/{preview_filename}', _external=False) + f"?v={int(datetime.now().timestamp())}"
-            preview_urls.append(preview_url)
-        
-        update_preview_progress(95, "finalizing")
-        time.sleep(0.5)  # Short delay to ensure frontend gets final progress update
-        update_preview_progress(100, "complete")
-        
-        return jsonify({
-            'preview_urls': preview_urls,
-            'message': f'Generated {len(preview_urls)} preview images'
-        })
-        
+            result = {
+                'preview_urls': preview_urls,
+                'message': f'Generated {len(preview_urls)} preview images'
+            }
+            logger.info(f"Preview generation complete: {len(preview_urls)} images")
+            return jsonify(result)
+            
+        except Exception as e:
+            logger.error(f"Error in preview processing: {str(e)}")
+            traceback.print_exc()
+            reset_preview_progress()
+            return jsonify({'error': str(e)}), 500
+    
     except Exception as e:
-        print(f"Error generating preview: {str(e)}")
+        logger.error(f"Unhandled error in preview_combined_images: {str(e)}")
+        traceback.print_exc()
         reset_preview_progress()
         return jsonify({'error': str(e)}), 500
 
