@@ -35,29 +35,13 @@ app.config['UPLOAD_FOLDER'] = os.path.join('static', 'uploads')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 app.config['SECRET_KEY'] = os.urandom(24)  # Generate a random secret key
 
-# Ensure required directories exist
-required_dirs = [
-    app.config['UPLOAD_FOLDER'],
-    os.path.join('static', 'previews'),
-    os.path.join('static', 'downloads'),
-    os.path.join('static', 'fonts')
-]
-
-# Make sure all required directories exist
-for directory in required_dirs:
-    try:
-        os.makedirs(directory, exist_ok=True)
-        logger.info(f"Ensured directory exists: {directory}")
-    except Exception as e:
-        logger.error(f"Error creating directory {directory}: {str(e)}")
+# Global variables to track progress
+preview_progress = {"percent": 0, "status": "idle"}
+download_progress = {"percent": 0, "status": "idle"}
 
 # Font management
 FONTS_DIR = os.path.join('static', 'fonts')
 DEFAULT_FONT = os.path.join(FONTS_DIR, 'arial.ttf')
-
-# Global variables to track progress
-preview_progress = {"percent": 0, "status": "idle"}
-download_progress = {"percent": 0, "status": "idle"}
 
 # Ensure fonts directory exists
 os.makedirs(FONTS_DIR, exist_ok=True)
@@ -138,7 +122,7 @@ def get_font_path(font_name, bold=False, italic=False):
     # If file doesn't exist, fall back to default Arial
     if not os.path.exists(font_path):
         print(f"Warning: Font file {font_path} not found, falling back to Arial")
-        return os.path.join(FONTS_DIR, 'Arial.ttf')
+        return DEFAULT_FONT
     
     return font_path
 
@@ -643,12 +627,24 @@ def preview_combined_images():
             time.sleep(0.5)  # Short delay to ensure frontend gets final progress update
             update_preview_progress(100, "complete")
             
-            result = {
+            # Create a simple dict first, then use Flask's jsonify
+            result_dict = {
                 'preview_urls': preview_urls,
                 'message': f'Generated {len(preview_urls)} preview images'
             }
-            logger.info(f"Preview generation complete: {len(preview_urls)} images")
-            return jsonify(result)
+            
+            logger.info(f"Preview generation complete: {len(preview_urls)} images. Result: {result_dict}")
+            
+            # Use a try block to catch any JSON serialization issues
+            try:
+                return jsonify(result_dict)
+            except Exception as json_error:
+                logger.error(f"JSON serialization error: {str(json_error)}")
+                # Fall back to a simpler response
+                return jsonify({
+                    'preview_urls': [],
+                    'error': f'Server error: Failed to serialize response: {str(json_error)}'
+                }), 500
             
         except Exception as e:
             logger.error(f"Error in preview processing: {str(e)}")
@@ -674,23 +670,34 @@ def download_individual():
     reset_download_progress()
     update_download_progress(5, "starting")
     
-    data = request.get_json()
-    
-    if not data or 'preview_urls' not in data:
-        reset_download_progress()
-        return jsonify({'error': 'No preview URLs provided'}), 400
-    
-    preview_urls = data.get('preview_urls', [])
-    if not preview_urls:
-        reset_download_progress()
-        return jsonify({'error': 'Empty preview URLs list'}), 400
-    
     try:
+        data = request.get_json()
+        
+        if not data or 'preview_urls' not in data:
+            logger.error("Missing preview_urls in download_individual request")
+            reset_download_progress()
+            return jsonify({'error': 'No preview URLs provided'}), 400
+        
+        preview_urls = data.get('preview_urls', [])
+        if not preview_urls:
+            logger.error("Empty preview_urls list in download_individual request")
+            reset_download_progress()
+            return jsonify({'error': 'Empty preview URLs list'}), 400
+        
+        logger.info(f"Preparing download for {len(preview_urls)} images")
+        
         # Create a directory to store the images with timestamp and unique ID
         timestamp = int(datetime.now().timestamp())
         unique_id = generate_unique_id()
         download_dir = os.path.join('static', 'downloads', f'batch_{timestamp}_{unique_id}')
-        os.makedirs(download_dir, exist_ok=True)
+        
+        try:
+            os.makedirs(download_dir, exist_ok=True)
+            logger.info(f"Created download directory: {download_dir}")
+        except Exception as e:
+            logger.error(f"Error creating download directory: {str(e)}")
+            reset_download_progress()
+            return jsonify({'error': f'Failed to create download directory: {str(e)}'}), 500
         
         update_download_progress(15, "preparing files")
         
@@ -703,32 +710,58 @@ def download_individual():
             current_progress = 15 + (70 * (idx / max(1, total_urls - 1)))
             update_download_progress(current_progress, f"preparing file {idx+1}/{total_urls}")
             
-            # Extract filename from URL
-            filename = os.path.basename(url.split('?')[0])
-            src_path = os.path.join('static', 'previews', filename)
-            
-            # Create a more user-friendly filename
-            dst_filename = f'image_{idx+1}.png'
-            dst_path = os.path.join(download_dir, dst_filename)
-            
-            # Copy the file
-            shutil.copy2(src_path, dst_path)
-            file_paths.append(dst_path)
+            try:
+                # Extract filename from URL
+                filename = os.path.basename(url.split('?')[0])
+                src_path = os.path.join('static', 'previews', filename)
+                
+                if not os.path.exists(src_path):
+                    logger.warning(f"Source file not found: {src_path}, skipping")
+                    continue
+                
+                # Create a more user-friendly filename
+                dst_filename = f'image_{idx+1}.png'
+                dst_path = os.path.join(download_dir, dst_filename)
+                
+                # Copy the file
+                shutil.copy2(src_path, dst_path)
+                logger.info(f"Copied file: {src_path} -> {dst_path}")
+                file_paths.append(dst_path)
+            except Exception as e:
+                logger.error(f"Error processing file {idx}: {str(e)}")
+                # Continue with other files instead of failing completely
+        
+        if not file_paths:
+            logger.error("No files were successfully copied")
+            reset_download_progress()
+            return jsonify({'error': 'Failed to copy any preview files'}), 500
         
         update_download_progress(90, "finalizing")
         time.sleep(0.5)  # Short delay to ensure frontend gets final progress update
         update_download_progress(100, "complete")
         
         # Return the download directory information
-        return jsonify({
+        result = {
             'download_dir': download_dir,
             'file_count': len(file_paths),
             'timestamp': timestamp,
             'unique_id': unique_id
-        })
+        }
+        
+        logger.info(f"Download preparation complete: {result}")
+        
+        try:
+            return jsonify(result)
+        except Exception as json_error:
+            logger.error(f"JSON serialization error in download_individual: {str(json_error)}")
+            # Return a simplified response
+            return jsonify({
+                'error': f'Server error: Failed to serialize response: {str(json_error)}'
+            }), 500
         
     except Exception as e:
-        print(f"Error preparing downloads: {str(e)}")
+        logger.error(f"Unhandled error in download_individual: {str(e)}")
+        traceback.print_exc()
         reset_download_progress()
         return jsonify({'error': str(e)}), 500
 
@@ -740,31 +773,34 @@ def delayed_file_cleanup(zip_path, download_dir, delay=30):
         try:
             # Check if the file still exists before trying to remove it
             if os.path.exists(zip_path):
-                print(f"Delayed cleanup: Removing zip file {zip_path}")
+                logger.info(f"Delayed cleanup: Removing zip file {zip_path}")
                 os.remove(zip_path)
             else:
-                print(f"Zip file {zip_path} already removed")
+                logger.info(f"Zip file {zip_path} already removed")
                 
             if os.path.exists(download_dir):
-                print(f"Delayed cleanup: Removing directory {download_dir}")
+                logger.info(f"Delayed cleanup: Removing directory {download_dir}")
                 shutil.rmtree(download_dir)
             else:
-                print(f"Directory {download_dir} already removed")
+                logger.info(f"Directory {download_dir} already removed")
         except Exception as e:
-            print(f"Error in delayed cleanup: {str(e)}")
+            logger.error(f"Error in delayed cleanup: {str(e)}")
     
     # Start a new thread to handle the cleanup
     cleanup_thread = threading.Thread(target=cleanup_task)
     cleanup_thread.daemon = True  # Allow the thread to exit when the main program exits
     cleanup_thread.start()
-    print(f"Scheduled cleanup for {zip_path} in {delay} seconds")
+    logger.info(f"Scheduled cleanup for {zip_path} in {delay} seconds")
 
 @app.route('/download_batch/<int:timestamp>/<string:unique_id>')
 def download_batch(timestamp, unique_id):
     """Serve a batch zip file for download with unique identifier"""
     download_dir = os.path.join('static', 'downloads', f'batch_{timestamp}_{unique_id}')
     
+    logger.info(f"Download request for batch: timestamp={timestamp}, unique_id={unique_id}")
+    
     if not os.path.exists(download_dir):
+        logger.error(f"Download directory not found: {download_dir}")
         return "Download batch not found", 404
     
     # Create a zip file with unique name
@@ -774,23 +810,45 @@ def download_batch(timestamp, unique_id):
     try:
         # Only create the zip if it doesn't already exist
         if not os.path.exists(zip_path):
+            logger.info(f"Creating new zip file: {zip_path}")
+            
+            # Get the list of files to include in the zip
+            files_to_zip = []
+            for root, dirs, files in os.walk(download_dir):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    files_to_zip.append((file_path, os.path.relpath(file_path, download_dir)))
+            
+            if not files_to_zip:
+                logger.error(f"No files found in download directory: {download_dir}")
+                return "No files to download", 404
+            
+            # Create the zip file
             with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                for root, dirs, files in os.walk(download_dir):
-                    for file in files:
-                        file_path = os.path.join(root, file)
-                        arcname = os.path.relpath(file_path, download_dir)
+                for file_path, arcname in files_to_zip:
+                    try:
                         zipf.write(file_path, arcname=arcname)
-            print(f"Created zip file: {zip_path}")
+                    except Exception as e:
+                        logger.error(f"Error adding file to zip: {file_path}: {str(e)}")
+            
+            logger.info(f"Created zip file: {zip_path} with {len(files_to_zip)} files")
         else:
-            print(f"Using existing zip file: {zip_path}")
+            logger.info(f"Using existing zip file: {zip_path}")
         
         # Use delayed cleanup instead of immediate cleanup
         delayed_file_cleanup(zip_path, download_dir)
         
+        # Check that the zip file exists and has a non-zero size
+        if not os.path.exists(zip_path) or os.path.getsize(zip_path) == 0:
+            logger.error(f"Zip file not created successfully: {zip_path}")
+            return "Error creating download file", 500
+        
+        logger.info(f"Sending zip file: {zip_path} with name {zip_filename}")
         return send_file(zip_path, as_attachment=True, download_name=zip_filename)
         
     except Exception as e:
-        print(f"Error creating or sending zip file: {e}")
+        logger.error(f"Error creating or sending zip file: {str(e)}")
+        traceback.print_exc()
         # Don't attempt cleanup here - let the delayed cleanup handle it
         return "Error creating download file.", 500
 
@@ -840,6 +898,55 @@ def update_download_progress(percent, status="processing"):
     global download_progress
     download_progress["percent"] = percent
     download_progress["status"] = status
+
+def ensure_dir_exists(path):
+    """Ensure a directory exists and is writable, with detailed logging"""
+    try:
+        # First, check if the path already exists
+        if os.path.exists(path):
+            if os.path.isdir(path):
+                # Check if it's writable
+                if os.access(path, os.W_OK):
+                    logger.info(f"Directory exists and is writable: {path}")
+                    return True
+                else:
+                    logger.warning(f"Directory exists but is not writable: {path}")
+                    # Try to make it writable
+                    try:
+                        os.chmod(path, 0o755)  # rwxr-xr-x
+                        logger.info(f"Updated permissions for directory: {path}")
+                        return True
+                    except Exception as e:
+                        logger.error(f"Failed to update permissions: {str(e)}")
+            else:
+                logger.error(f"Path exists but is not a directory: {path}")
+                return False
+        
+        # Path doesn't exist, so create it
+        os.makedirs(path, exist_ok=True)
+        logger.info(f"Created directory: {path}")
+        return True
+    except Exception as e:
+        logger.error(f"Error ensuring directory exists {path}: {str(e)}")
+        return False
+
+# Update the ensure_directories_exist function
+def ensure_directories_exist():
+    """Ensure all required directories exist"""
+    directories = [
+        app.config['UPLOAD_FOLDER'],
+        os.path.join('static', 'previews'),
+        os.path.join('static', 'downloads'),
+        FONTS_DIR
+    ]
+    
+    logger.info("Checking required directories...")
+    
+    for directory in directories:
+        ensure_dir_exists(directory)
+
+# Call this function at startup
+ensure_directories_exist()
 
 if __name__ == '__main__':
     # For development
