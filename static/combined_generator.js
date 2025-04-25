@@ -1,4 +1,19 @@
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Checking elements...');
+    console.log('combinedTextColumnSelect:', document.getElementById('combinedTextColumnSelect'));
+    console.log('combinedFontSize:', document.getElementById('combinedFontSize'));
+    console.log('combinedFontColor:', document.getElementById('combinedFontColor'));
+    console.log('combinedFontFamily:', document.getElementById('combinedFontFamily'));
+    console.log('combinedBoldText:', document.getElementById('combinedBoldText'));
+    console.log('combinedItalicText:', document.getElementById('combinedItalicText'));
+    console.log('combinedUnderlineText:', document.getElementById('combinedUnderlineText'));
+    console.log('combinedStrikethroughText:', document.getElementById('combinedStrikethroughText'));
+    console.log('image-box-tab:', document.getElementById('image-box-tab'));
+    console.log('combinedImageColumnSelect:', document.getElementById('combinedImageColumnSelect'));
+    console.log('addCombinedTextBox:', document.getElementById('addCombinedTextBox'));
+    console.log('addCombinedImageBox:', document.getElementById('addCombinedImageBox'));
+    console.log('combinedCanvasContainer:', document.getElementById('combinedCanvasContainer'));
+    console.log('combinedBoxes:', document.getElementById('combinedBoxes'));
     // Add CSS for boxes styling
     const style = document.createElement('style');
     style.textContent = `
