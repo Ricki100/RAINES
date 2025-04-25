@@ -393,21 +393,20 @@ def preview_combined_images():
     reset_preview_progress()
     update_preview_progress(5, "starting")
     
-    data = request.get_json()
-    
-    if not data:
-        reset_preview_progress()
-        return jsonify({'error': 'No data received'}), 400
-    
-    template_filename = data.get('template')
-    csv_data = data.get('csv_data', [])
-    boxes = data.get('text_boxes', [])
-    
-    if not template_filename or not csv_data or not boxes:
-        reset_preview_progress()
-        return jsonify({'error': 'Missing required parameters'}), 400
-    
     try:
+        data = request.get_json()
+        if not data:
+            reset_preview_progress()
+            return jsonify({'error': 'No data received'}), 400
+        
+        template_filename = data.get('template')
+        csv_data = data.get('csv_data', [])
+        boxes = data.get('text_boxes', [])
+        
+        if not template_filename or not csv_data or not boxes:
+            reset_preview_progress()
+            return jsonify({'error': 'Missing required parameters'}), 400
+        
         template_path = os.path.join(app.config['UPLOAD_FOLDER'], template_filename)
         if not os.path.exists(template_path):
             reset_preview_progress()
@@ -542,7 +541,7 @@ def preview_combined_images():
         })
         
     except Exception as e:
-        print(f"Error generating preview: {str(e)}")
+        print(f"Error in preview_combined_images: {str(e)}")
         reset_preview_progress()
         return jsonify({'error': str(e)}), 500
 
