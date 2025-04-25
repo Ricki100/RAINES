@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', function() {
     // Add CSS for boxes styling
     const style = document.createElement('style');
     style.textContent = `
