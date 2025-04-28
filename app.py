@@ -129,32 +129,34 @@ def index():
 
 @app.route('/upload_template', methods=['POST'])
 def upload_template():
+    import sys
+    is_vercel = 'VERCEL' in os.environ or sys.platform == 'linux'
+    # Use /tmp for uploads on Vercel, else use static/uploads
+    upload_folder = '/tmp' if is_vercel else app.config['UPLOAD_FOLDER']
     if 'template' not in request.files:
         return jsonify({'error': 'No file uploaded'}), 400
-    
     file = request.files['template']
     if file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
-    
-    # Generate a fixed filename like 'current_template.png' to overwrite any existing template
     original_filename = secure_filename(file.filename)
     extension = os.path.splitext(original_filename)[1]
     filename = f'current_template{extension}'
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    
+    filepath = os.path.join(upload_folder, filename)
     # Clear any existing template files
-    for f in glob.glob(os.path.join(app.config['UPLOAD_FOLDER'], 'current_template.*')):
+    for f in glob.glob(os.path.join(upload_folder, 'current_template.*')):
         try:
             os.remove(f)
-            print(f"Removed old template file: {f}")
         except Exception as e:
             print(f"Warning: Could not remove old template file {f}: {e}")
-    
-    # Save the new template file
-    file.save(filepath)
-    
+    try:
+        file.save(filepath)
+    except Exception as e:
+        return jsonify({'error': f'Failed to save file: {str(e)}'}), 500
     # Return the URL for the uploaded image
-    image_url = url_for('static', filename=f'uploads/{filename}')
+    if is_vercel:
+        image_url = url_for('serve_tmp_file', filename=filename, _external=True)
+    else:
+        image_url = url_for('static', filename=f'uploads/{filename}', _external=True)
     return jsonify({
         'filename': filename,
         'image_url': image_url,
@@ -724,6 +726,11 @@ def update_download_progress(percent, status="processing"):
     global download_progress
     download_progress["percent"] = percent
     download_progress["status"] = status
+
+# Serve files from /tmp for Vercel
+@app.route('/tmp/<path:filename>')
+def serve_tmp_file(filename):
+    return send_file(os.path.join('/tmp', filename))
 
 if __name__ == '__main__':
     # For development
