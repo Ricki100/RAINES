@@ -390,124 +390,91 @@ def draw_image_box(draw, box, image_url, img_width, img_height):
 
 @app.route('/preview_combined_images', methods=['POST'])
 def preview_combined_images():
-    """Process both text and image boxes in a single template"""
+    import sys
+    is_vercel = 'VERCEL' in os.environ or sys.platform == 'linux'
     global preview_progress
     reset_preview_progress()
     update_preview_progress(5, "starting")
-    
     data = request.get_json()
-    
     if not data:
         reset_preview_progress()
         return jsonify({'error': 'No data received'}), 400
-    
     template_filename = data.get('template')
     csv_data = data.get('csv_data', [])
     boxes = data.get('text_boxes', [])
-    
     if not template_filename or not csv_data or not boxes:
         reset_preview_progress()
         return jsonify({'error': 'Missing required parameters'}), 400
-    
     try:
         template_path = os.path.join(app.config['UPLOAD_FOLDER'], template_filename)
         if not os.path.exists(template_path):
             reset_preview_progress()
             return jsonify({'error': f'Template file not found: {template_filename}'}), 404
-        
         update_preview_progress(10, "preparing")
-        
-        preview_dir = os.path.join('static', 'previews')
+        # Use /tmp for previews on Vercel
+        preview_dir = '/tmp' if is_vercel else os.path.join('static', 'previews')
         os.makedirs(preview_dir, exist_ok=True)
-        # Clear previous previews
-        clear_directory(preview_dir, pattern="preview_*.png")
-        
+        if not is_vercel:
+            clear_directory(preview_dir, pattern="preview_*.png")
         update_preview_progress(15, "loading template")
         template_img = Image.open(template_path)
-        
-        # Generate preview images
         preview_urls = []
         max_previews = min(len(csv_data), 10) if len(csv_data) > 10 else len(csv_data)
-        
         update_preview_progress(20, "generating previews")
-        
         for idx, row in enumerate(csv_data[:max_previews]):
-            # Calculate progress - spread from 20% to 90%
             current_progress = 20 + (70 * (idx / max(1, max_previews - 1)))
             update_preview_progress(current_progress, f"generating image {idx+1}/{max_previews}")
-            
-            # Create a copy of template for each row
             img = template_img.copy()
-            # Ensure image is in RGB or RGBA mode for consistent processing
             if img.mode not in ('RGB', 'RGBA'):
                 img = img.convert('RGBA')
             draw = ImageDraw.Draw(img)
-            
-            # Process each box (can be text or image)
             for box in boxes:
                 column = box.get('column')
-                
                 if column not in row:
                     print(f"Warning: Column '{column}' not found in CSV row {idx}")
                     continue
-                
                 x = float(box.get('x', 0))
                 y = float(box.get('y', 0))
                 width = float(box.get('width', 100))
                 height = float(box.get('height', 100))
-                
-                # Check if it's an image box
                 if box.get('isImage', False):
                     image_url = row[column]
-                    if image_url:  # Only process if URL is provided
+                    if image_url:
                         try:
-                            # For image boxes, use the dedicated function
                             result = draw_image_box(draw, box, image_url, img.width, img.height)
                             if result:
-                                if len(result) == 3: # If mask is returned
+                                if len(result) == 3:
                                     overlay, pos, mask = result
-                                    # Ensure overlay is RGBA before pasting with mask
                                     if overlay.mode != 'RGBA':
                                         overlay = overlay.convert('RGBA')
-                                    # Paste using the mask
                                     img.paste(overlay, pos, mask)
-                                else: # No mask
+                                else:
                                     overlay, pos = result
-                                    # Ensure overlay is compatible with base image mode
                                     if img.mode == 'RGBA' and overlay.mode != 'RGBA':
                                         overlay = overlay.convert('RGBA')
                                     elif img.mode == 'RGB' and overlay.mode != 'RGB':
                                         overlay = overlay.convert('RGB')
                                     img.paste(overlay, pos)
                             else:
-                                # Draw error indication
                                 draw.rectangle([(x, y), (x + width, y + height)], outline='red', width=2)
                                 draw.text((x + 5, y + 5), "Image Error", fill='red', font=ImageFont.truetype(DEFAULT_FONT, 12))
                         except Exception as e:
                             print(f"Error drawing image from {image_url}: {str(e)}")
-                            # Draw error box
                             draw.rectangle([(x, y), (x + width, y + height)], outline='red', width=2)
                             draw.text((x + 5, y + 5), f"Error: {str(e)[:30]}...", fill='red', font=ImageFont.truetype(DEFAULT_FONT, 12))
                 else:
-                    # It's a text box
-                    if row[column]:  # Only draw if text is provided
-                        # Handle text styling
+                    if row[column]:
                         font_size = int(box.get('fontSize', 24))
                         font_family = box.get('fontFamily', 'Arial')
-                        # Convert hex to RGB color
                         color_hex = box.get('color', '#000000')
                         if not color_hex.startswith('#'):
                             color_hex = '#000000'
                         color = tuple(int(color_hex.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
-                        
-                        # Handle text styling
                         bold = box.get('bold', False)
                         italic = box.get('italic', False)
                         underline = box.get('underline', False)
                         strikethrough = box.get('strikethrough', False)
                         align = box.get('align', 'left')
-                        
-                        # Create a modified box with all required parameters for draw_text_box
                         text_box = {
                             'x': x,
                             'y': y,
@@ -522,27 +489,22 @@ def preview_combined_images():
                             'strikethrough': str(strikethrough).lower(),
                             'align': align
                         }
-                        
                         draw_text_box(draw, text_box, row[column], img.width, img.height)
-            
-            # Save preview image
             preview_filename = f'preview_{idx}_{int(datetime.now().timestamp() * 1000)}.png'
-            preview_path = os.path.join('static', 'previews', preview_filename)
+            preview_path = os.path.join(preview_dir, preview_filename)
             img.save(preview_path)
-            
-            # Add URL to list
-            preview_url = url_for('static', filename=f'previews/{preview_filename}', _external=False) + f"?v={int(datetime.now().timestamp())}"
+            if is_vercel:
+                preview_url = url_for('serve_tmp_file', filename=preview_filename, _external=False) + f"?v={int(datetime.now().timestamp())}"
+            else:
+                preview_url = url_for('static', filename=f'previews/{preview_filename}', _external=False) + f"?v={int(datetime.now().timestamp())}"
             preview_urls.append(preview_url)
-        
         update_preview_progress(95, "finalizing")
-        time.sleep(0.5)  # Short delay to ensure frontend gets final progress update
+        time.sleep(0.5)
         update_preview_progress(100, "complete")
-        
         return jsonify({
             'preview_urls': preview_urls,
             'message': f'Generated {len(preview_urls)} preview images'
         })
-        
     except Exception as e:
         print(f"Error generating preview: {str(e)}")
         reset_preview_progress()
@@ -555,64 +517,46 @@ def generate_unique_id(length=8):
 
 @app.route('/download_individual', methods=['POST'])
 def download_individual():
-    """Download individual preview images"""
+    import sys
+    is_vercel = 'VERCEL' in os.environ or sys.platform == 'linux'
     global download_progress
     reset_download_progress()
     update_download_progress(5, "starting")
-    
     data = request.get_json()
-    
     if not data or 'preview_urls' not in data:
         reset_download_progress()
         return jsonify({'error': 'No preview URLs provided'}), 400
-    
     preview_urls = data.get('preview_urls', [])
     if not preview_urls:
         reset_download_progress()
         return jsonify({'error': 'Empty preview URLs list'}), 400
-    
     try:
-        # Create a directory to store the images with timestamp and unique ID
         timestamp = int(datetime.now().timestamp())
         unique_id = generate_unique_id()
-        download_dir = os.path.join('static', 'downloads', f'batch_{timestamp}_{unique_id}')
+        download_dir = os.path.join('/tmp' if is_vercel else 'static/downloads', f'batch_{timestamp}_{unique_id}')
         os.makedirs(download_dir, exist_ok=True)
-        
         update_download_progress(15, "preparing files")
-        
-        # Copy each preview image to the download directory
         file_paths = []
         total_urls = len(preview_urls)
-        
         for idx, url in enumerate(preview_urls):
-            # Calculate progress - spread from 15% to 85%
             current_progress = 15 + (70 * (idx / max(1, total_urls - 1)))
             update_download_progress(current_progress, f"preparing file {idx+1}/{total_urls}")
-            
-            # Extract filename from URL
             filename = os.path.basename(url.split('?')[0])
-            src_path = os.path.join('static', 'previews', filename)
-            
-            # Create a more user-friendly filename
+            # Use /tmp for previews on Vercel, else static/previews
+            src_path = os.path.join('/tmp' if is_vercel else 'static/previews', filename)
             dst_filename = f'image_{idx+1}.png'
             dst_path = os.path.join(download_dir, dst_filename)
-            
-            # Copy the file
             shutil.copy2(src_path, dst_path)
             file_paths.append(dst_path)
-        
         update_download_progress(90, "finalizing")
-        time.sleep(0.5)  # Short delay to ensure frontend gets final progress update
+        time.sleep(0.5)
         update_download_progress(100, "complete")
-        
-        # Return the download directory information
         return jsonify({
             'download_dir': download_dir,
             'file_count': len(file_paths),
             'timestamp': timestamp,
             'unique_id': unique_id
         })
-        
     except Exception as e:
         print(f"Error preparing downloads: {str(e)}")
         reset_download_progress()
@@ -647,18 +591,14 @@ def delayed_file_cleanup(zip_path, download_dir, delay=30):
 
 @app.route('/download_batch/<int:timestamp>/<string:unique_id>')
 def download_batch(timestamp, unique_id):
-    """Serve a batch zip file for download with unique identifier"""
-    download_dir = os.path.join('static', 'downloads', f'batch_{timestamp}_{unique_id}')
-    
+    import sys
+    is_vercel = 'VERCEL' in os.environ or sys.platform == 'linux'
+    download_dir = os.path.join('/tmp' if is_vercel else 'static/downloads', f'batch_{timestamp}_{unique_id}')
     if not os.path.exists(download_dir):
         return "Download batch not found", 404
-    
-    # Create a zip file with unique name
     zip_filename = f'images_{timestamp}_{unique_id}.zip'
-    zip_path = os.path.join('static', 'downloads', zip_filename)
-    
+    zip_path = os.path.join('/tmp' if is_vercel else 'static/downloads', zip_filename)
     try:
-        # Only create the zip if it doesn't already exist
         if not os.path.exists(zip_path):
             with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
                 for root, dirs, files in os.walk(download_dir):
@@ -669,15 +609,10 @@ def download_batch(timestamp, unique_id):
             print(f"Created zip file: {zip_path}")
         else:
             print(f"Using existing zip file: {zip_path}")
-        
-        # Use delayed cleanup instead of immediate cleanup
         delayed_file_cleanup(zip_path, download_dir)
-        
         return send_file(zip_path, as_attachment=True, download_name=zip_filename)
-        
     except Exception as e:
         print(f"Error creating or sending zip file: {e}")
-        # Don't attempt cleanup here - let the delayed cleanup handle it
         return "Error creating download file.", 500
 
 def clear_directory(directory_path, pattern="*.png"):
