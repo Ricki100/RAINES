@@ -2,14 +2,21 @@
     "version": 2,
     "builds": [
         {
-            "src": "vercel_app.py",
+            "src": "app.py",
             "use": "@vercel/python"
         }
     ],
     "routes": [
         {
+            "src": "/static/(.*)",
+            "dest": "/static/$1"
+        },
+        {
             "src": "/(.*)",
-            "dest": "vercel_app.py"
+            "dest": "/app.py"
         }
+    ],
+    "includeFiles": [
+        "static/fonts/**"
     ]
 } 

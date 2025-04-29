@@ -102,6 +102,7 @@ def get_font_path(font_name, bold=False, italic=False):
     
     # Default to Arial if font not found
     if font_name not in font_map:
+        print(f"Warning: Font '{font_name}' not found in font map, falling back to Arial")
         font_name = 'arial'
     
     style = 'regular'
@@ -114,12 +115,18 @@ def get_font_path(font_name, bold=False, italic=False):
     
     # Get the font file name
     font_file = font_map[font_name][style]
-    font_path = os.path.join(FONTS_DIR, font_file)
+    
+    # Use absolute path for font file
+    font_path = os.path.abspath(os.path.join(FONTS_DIR, font_file))
     
     # If file doesn't exist, fall back to default Arial
     if not os.path.exists(font_path):
         print(f"Warning: Font file {font_path} not found, falling back to Arial")
-        return os.path.join(FONTS_DIR, 'Arial.ttf')
+        default_font = os.path.abspath(os.path.join(FONTS_DIR, 'Arial.ttf'))
+        if not os.path.exists(default_font):
+            print(f"Error: Default font {default_font} not found")
+            raise FileNotFoundError(f"Required font file not found: {default_font}")
+        return default_font
     
     return font_path
 
@@ -267,7 +274,13 @@ def draw_text_box(draw, box, text, img_width, img_height):
         
         # Create appropriate font based on style
         font_path = get_font_path(font_family, bold=is_bold, italic=is_italic)
-        font = ImageFont.truetype(font_path, font_size)
+        try:
+            font = ImageFont.truetype(font_path, font_size)
+        except Exception as e:
+            print(f"Error loading font {font_path}: {str(e)}")
+            # Fall back to default font
+            default_font = os.path.abspath(os.path.join(FONTS_DIR, 'Arial.ttf'))
+            font = ImageFont.truetype(default_font, font_size)
         
         # Get color (default to black)
         color_str = box.get('color', '#000000')
@@ -339,6 +352,7 @@ def draw_text_box(draw, box, text, img_width, img_height):
                 
     except Exception as e:
         print(f"Error drawing text box: {e}")
+        # Don't re-raise the exception to prevent the entire image from failing
 
 def draw_image_box(draw, box, image_url, img_width, img_height):
     """Helper function to draw image from URL into a box"""
